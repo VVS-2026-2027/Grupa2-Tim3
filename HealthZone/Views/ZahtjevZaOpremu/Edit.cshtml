@@ -1,0 +1,77 @@
+@model HealthZone.Models.ZahtjevZaOpremu
+
+@{
+    ViewData["Title"] = "Uredi zahtjev";
+}
+
+<link rel="stylesheet" href="~/css/healthzone.css" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+<div class="hz-page hz-page-narrow">
+    <a href="javascript:history.back()" class="hz-back">Nazad</a>
+
+    <div class="hz-header">
+        <div class="hz-logo">🛠️</div>
+        <div class="hz-header-main">
+            <h1 class="hz-title">Uredi zahtjev</h1>
+            <p class="hz-subtitle">Ažurirajte podatke postojeće stavke u HealthZone sistemu.</p>
+        </div>
+    </div>
+
+    <div class="hz-card">
+        <form asp-action="Edit" method="post" novalidate>
+            <div asp-validation-summary="ModelOnly" class="validation-summary-errors"></div>
+            <input type="hidden" asp-for="ZahtjevId" />
+            <div class="hz-section-title">Podaci</div>
+
+            <div class="hz-grid">
+        <div class="hz-field">
+            <label asp-for="Naziv" class="hz-label">Naziv<span class="req">*</span></label>
+            <input type="text" asp-for="Naziv" placeholder="npr. Ultrazvučni aparat" class="hz-input" />
+            <span asp-validation-for="Naziv" class="hz-error"></span>
+        </div>
+        <div class="hz-field">
+            <label asp-for="DoktorID" class="hz-label">Doktor<span class="req">*</span></label>
+            <select asp-for="DoktorID" class="hz-select" asp-items="ViewBag.DoktorID as SelectList"><option value="">— Odaberite —</option></select>
+            <span asp-validation-for="DoktorID" class="hz-error"></span>
+        </div>
+        <div class="hz-field">
+            <label asp-for="VrstaZahtjeva" class="hz-label">Vrsta zahtjeva</label>
+            <select asp-for="VrstaZahtjeva" class="hz-select" asp-items="Html.GetEnumSelectList<VrstaZahtjeva>()"><option value="">— Odaberite —</option></select>
+            <span asp-validation-for="VrstaZahtjeva" class="hz-error"></span>
+        </div>
+        <div class="hz-field">
+            <label asp-for="Kategorija" class="hz-label">Kategorija</label>
+            <select asp-for="Kategorija" class="hz-select" asp-items="Html.GetEnumSelectList<KategorijaOpreme>()"><option value="">— Odaberite —</option></select>
+            <span asp-validation-for="Kategorija" class="hz-error"></span>
+        </div>
+        <div class="hz-field">
+            <label asp-for="Hitnost" class="hz-label">Hitnost</label>
+            <select asp-for="Hitnost" class="hz-select" asp-items="Html.GetEnumSelectList<Hitnost>()"><option value="">— Odaberite —</option></select>
+            <span asp-validation-for="Hitnost" class="hz-error"></span>
+        </div>
+        <div class="hz-field">
+            <label asp-for="Status" class="hz-label">Status</label>
+            <select asp-for="Status" class="hz-select" asp-items="Html.GetEnumSelectList<Status>()"><option value="">— Odaberite —</option></select>
+            <span asp-validation-for="Status" class="hz-error"></span>
+        </div>
+        <div class="hz-field hz-full">
+            <label asp-for="Opis" class="hz-label">Opis</label>
+            <textarea asp-for="Opis" placeholder="Detaljan opis potrebe..." class="hz-textarea"></textarea>
+            <span asp-validation-for="Opis" class="hz-error"></span>
+        </div>
+            </div>
+
+            <div class="hz-actions">
+                <a asp-action="Index" class="hz-btn hz-btn-ghost">Odustani</a>
+                <button type="submit" class="hz-btn hz-btn-primary">Sačuvaj izmjene</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+}

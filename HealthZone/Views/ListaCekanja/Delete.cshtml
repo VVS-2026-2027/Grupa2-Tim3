@@ -1,0 +1,74 @@
+@model HealthZone.Models.ListaCekanja
+
+@{
+    ViewData["Title"] = "Obriši listu čekanja";
+}
+
+<link rel="stylesheet" href="~/css/healthzone.css" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+<style>
+    .hz-badge-spec {
+        background: #e1f5ee;
+        color: #0f6e56;
+    }
+</style>
+
+<div class="hz-page hz-page-narrow">
+    <a href="javascript:history.back()" class="hz-back">Nazad</a>
+
+    <div class="hz-header">
+        <div class="hz-logo">📋</div>
+        <div class="hz-header-main">
+            <h1 class="hz-title">Obriši listu čekanja</h1>
+            <p class="hz-subtitle">Potvrdite trajno brisanje liste čekanja. Ova akcija se ne može poništiti.</p>
+        </div>
+    </div>
+
+    <div class="hz-warning-panel">
+        <div class="ic">⚠️</div>
+        <div>
+            <h4>Trajno brisanje</h4>
+            <p>Brisanjem liste čekanja uklonit će se i svi pacijenti koji se nalaze na njoj.</p>
+        </div>
+    </div>
+
+    <div class="hz-card">
+        <div class="hz-section-title">Podaci</div>
+        <div class="hz-grid">
+            <div class="hz-field">
+                <label class="hz-label">ID Liste</label>
+                <div class="hz-input hz-readonly" style="font-family:ui-monospace,monospace;color:#185fa5;font-weight:600">#@Model.ListaId</div>
+            </div>
+            <div class="hz-field">
+                <label class="hz-label">Doktor</label>
+                <div class="hz-input hz-readonly">@Model.Doktor?.Ime @Model.Doktor?.Prezime</div>
+            </div>
+            <div class="hz-field">
+                <label class="hz-label">Email doktora</label>
+                <div class="hz-input hz-readonly">@(Model.Doktor?.Email ?? "—")</div>
+            </div>
+            <div class="hz-field">
+                <label class="hz-label">Specijalizacija</label>
+                <div class="hz-input hz-readonly">
+                    @if (Model.Doktor?.Specijalizacija != null)
+                    {
+                        <span class="hz-badge hz-badge-spec">@Model.Doktor.Specijalizacija</span>
+                    }
+                    else
+                    {
+                        @:—
+                    }
+                </div>
+            </div>
+        </div>
+
+        <form asp-action="Delete" asp-controller="ListaCekanja" method="post">
+            <input type="hidden" asp-for="ListaId" />
+            <div class="hz-actions hz-actions-between">
+                <a asp-action="Index" asp-controller="ListaCekanja" class="hz-btn hz-btn-ghost">Odustani</a>
+                <button type="submit" class="hz-btn hz-btn-danger">Da, obriši trajno</button>
+            </div>
+        </form>
+    </div>
+</div>

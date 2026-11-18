@@ -1,0 +1,67 @@
+@model HealthZone.Models.Nalaz
+
+@{
+    ViewData["Title"] = "Obriši — nalaz";
+}
+
+<link rel="stylesheet" href="~/css/healthzone.css" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+<div class="hz-page hz-page-narrow">
+    <a href="javascript:history.back()" class="hz-back">Nazad</a>
+
+    <div class="hz-header">
+        <div class="hz-logo">📋</div>
+        <div class="hz-header-main">
+            <h1 class="hz-title">Obriši — nalaz</h1>
+            <p class="hz-subtitle">Potvrdite trajno brisanje stavke. Ova akcija se ne može poništiti.</p>
+        </div>
+    </div>
+
+        <div class="hz-warning-panel">
+            <div class="ic">⚠️</div>
+            <div>
+                <h4>Trajno brisanje</h4>
+                <p>Ova stavka će biti uklonjena iz HealthZone sistema. Povezani podaci mogu postati neispravni.</p>
+            </div>
+        </div>
+
+    <div class="hz-card">
+        <div class="hz-section-title">Podaci</div>
+        <div class="hz-grid">
+        <div class="hz-field">
+            <label asp-for="TerminID" class="hz-label">Termin<span class="req">*</span></label>
+            <div class="hz-input hz-readonly">@Model.TerminID</div>
+            
+        </div>
+        <div class="hz-field">
+            <label asp-for="PacijentID" class="hz-label">Pacijent<span class="req">*</span></label>
+            <div class="hz-input hz-readonly">@Model.PacijentID</div>
+            
+        </div>
+        <div class="hz-field hz-full">
+            <label asp-for="Dijagnoza" class="hz-label">Dijagnoza<span class="req">*</span></label>
+            <div class="hz-input hz-readonly">@Model.Dijagnoza</div>
+            
+        </div>
+        <div class="hz-field hz-full">
+            <label asp-for="Opis" class="hz-label">Opis nalaza<span class="req">*</span></label>
+            <div class="hz-input hz-readonly" style="min-height:60px;white-space:pre-wrap">@Model.Opis</div>
+            
+        </div>
+        <div class="hz-field hz-full">
+            <label asp-for="Terapija" class="hz-label">Terapija<span class="req">*</span></label>
+            <div class="hz-input hz-readonly" style="min-height:60px;white-space:pre-wrap">@Model.Terapija</div>
+            
+        </div>
+        </div>
+
+        <form asp-action="Delete" method="post">
+            <input type="hidden" asp-for="NalazId" />
+            <div class="hz-actions hz-actions-between">
+                <a asp-action="Index" class="hz-btn hz-btn-ghost">Odustani</a>
+                <button type="submit" class="hz-btn hz-btn-danger">Da, obriši trajno</button>
+            </div>
+        </form>
+    </div>
+</div>

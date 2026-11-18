@@ -1,0 +1,72 @@
+@model HealthZone.Models.Termin
+
+@{
+    ViewData["Title"] = "Obriši — termin";
+}
+
+<link rel="stylesheet" href="~/css/healthzone.css" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+<div class="hz-page hz-page-narrow">
+    <a href="javascript:history.back()" class="hz-back">Nazad</a>
+
+    <div class="hz-header">
+        <div class="hz-logo">📅</div>
+        <div class="hz-header-main">
+            <h1 class="hz-title">Obriši — termin</h1>
+            <p class="hz-subtitle">Potvrdite trajno brisanje stavke. Ova akcija se ne može poništiti.</p>
+        </div>
+    </div>
+
+    <div class="hz-warning-panel">
+        <div class="ic">⚠️</div>
+        <div>
+            <h4>Trajno brisanje</h4>
+            <p>Ova stavka će biti uklonjena iz HealthZone sistema. Povezani podaci mogu postati neispravni.</p>
+        </div>
+    </div>
+
+    <div class="hz-card">
+        <div class="hz-section-title">Podaci</div>
+        <div class="hz-grid">
+            <div class="hz-field">
+                <label asp-for="Datum" class="hz-label">Datum</label>
+                <div class="hz-input hz-readonly">@Model.Datum.ToString("dd.MM.yyyy")</div>
+            </div>
+            <div class="hz-field">
+                <label asp-for="Vrijeme" class="hz-label">Vrijeme</label>
+                <div class="hz-input hz-readonly">@Model.Vrijeme.ToString("HH:mm")</div>
+            </div>
+            <div class="hz-field">
+                <label asp-for="Status" class="hz-label">Status</label>
+                <div class="hz-input hz-readonly">@Model.Status</div>
+            </div>
+            <div class="hz-field">
+                <label asp-for="DoktorID" class="hz-label">Doktor</label>
+                <div class="hz-input hz-readonly">
+                    @(Model.Doktor != null ? $"{Model.Doktor.Ime} {Model.Doktor.Prezime}" : ViewBag.DoktorIme ?? "—")
+                </div>
+            </div>
+            <div class="hz-field">
+                <label asp-for="PacijentID" class="hz-label">Pacijent</label>
+                <div class="hz-input hz-readonly">
+                    @(Model.Pacijent != null ? $"{Model.Pacijent.Ime} {Model.Pacijent.Prezime}" : ViewBag.PacijentIme ?? "—")
+                </div>
+            </div>
+            <div class="hz-field hz-full">
+                <label asp-for="UslugaID" class="hz-label">Usluga</label>
+                <div class="hz-input hz-readonly">
+                    @(Model.Usluga != null ? Model.Usluga.Naziv : ViewBag.UslugaNaziv ?? "—")
+                </div>
+            </div>
+        </div>
+
+        <form asp-action="Delete" method="post">
+            <input type="hidden" asp-for="TerminId" />
+            <div class="hz-actions hz-actions-between">
+                <a asp-action="Index" class="hz-btn hz-btn-ghost">Odustani</a>
+                <button type="submit" class="hz-btn hz-btn-danger">Da, obriši trajno</button>
+            </div>
+        </form>
+    </div>
+</div>
