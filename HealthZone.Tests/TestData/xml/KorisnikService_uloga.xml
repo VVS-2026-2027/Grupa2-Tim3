@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<scenariji>
+  <scenarij>
+    <uloge>Doktor</uloge>
+    <ocekivanaUloga>Doktor</ocekivanaUloga>
+  </scenarij>
+  <scenarij>
+    <uloge>Pacijent,Doktor</uloge>
+    <ocekivanaUloga>Pacijent</ocekivanaUloga>
+  </scenarij>
+  <scenarij>
+    <uloge></uloge>
+    <ocekivanaUloga>Nepoznato</ocekivanaUloga>
+  </scenarij>
+</scenariji>
