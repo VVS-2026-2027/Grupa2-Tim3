@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Zakazivanje s doktorom i uslugom, i zakazivanje bez učitanog pacijenta (element pacijentEmail ne postoji). -->
+<scenariji>
+  <scenarij>
+    <doktorId>dr-1</doktorId><doktorIme>Amar</doktorIme><doktorPrezime>Hodzic</doktorPrezime>
+    <usluga>Opsti pregled</usluga><pacijentEmail>novi@test.ba</pacijentEmail>
+    <pomakDana>3</pomakDana><sat>10</sat><ocekivaniBrojMailova>1</ocekivaniBrojMailova>
+  </scenarij>
+  <scenarij>
+    <doktorId>dr-2</doktorId>
+    <pomakDana>4</pomakDana><sat>12</sat><ocekivaniBrojMailova>0</ocekivaniBrojMailova>
+  </scenarij>
+</scenariji>

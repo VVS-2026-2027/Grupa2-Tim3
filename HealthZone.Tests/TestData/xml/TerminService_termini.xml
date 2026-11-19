@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- "Baza" termina koju vraća mock ITerminRepository. pomakDana je broj dana od danas. -->
+<!-- "Baza" termina koju vraća mock ITerminRepository. pomakDana je broj dana od danas.
+     usluga i doktorIme su opcionalni; bez elementa email pacijent je null. -->
 <termini>
   <termin>
     <id>1</id><doktorId>dr-1</doktorId><doktorIme>Amar</doktorIme><doktorPrezime>Hodzic</doktorPrezime>
     <pacijentId>pac-1</pacijentId><email>pac1@test.ba</email>
-    <pomakDana>1</pomakDana><sat>9</sat><status>Potvrdjen</status>
+    <pomakDana>1</pomakDana><sat>9</sat><status>Potvrdjen</status><usluga>Opsti pregled</usluga>
   </termin>
   <termin>
     <id>2</id><doktorId>dr-1</doktorId><pacijentId>pac-2</pacijentId><email>pac2@test.ba</email>
@@ -25,5 +26,10 @@
   <termin>
     <id>6</id><doktorId>dr-1</doktorId><pacijentId>pac-2</pacijentId><email>pac2@test.ba</email>
     <pomakDana>3</pomakDana><sat>10</sat><status>Otkazan</status>
+  </termin>
+  <!-- Termin bez elementa email: pacijent nije učitan (Pacijent je null). -->
+  <termin>
+    <id>7</id><doktorId>dr-3</doktorId><pacijentId>pac-4</pacijentId>
+    <pomakDana>1</pomakDana><sat>12</sat><status>Potvrdjen</status>
   </termin>
 </termini>

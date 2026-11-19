@@ -15,4 +15,12 @@
     <kandidat><email>raniji@test.ba</email><prioritet>Srednji</prioritet><doktorId>dr-1</doktorId><pomakDana>-7</pomakDana></kandidat>
     <ocekivaniEmail>raniji@test.ba</ocekivaniEmail>
   </scenarij>
+  <!-- Kandidat bez prioriteta računa se kao Nizak; kandidat bez liste (bez doktorId) se preskače. -->
+  <scenarij>
+    <terminId>1</terminId>
+    <kandidat><email>bezprioriteta@test.ba</email><doktorId>dr-1</doktorId><pomakDana>-8</pomakDana></kandidat>
+    <kandidat><email>nizak@test.ba</email><prioritet>Nizak</prioritet><doktorId>dr-1</doktorId><pomakDana>-2</pomakDana></kandidat>
+    <kandidat><email>bezliste@test.ba</email><prioritet>Visok</prioritet><pomakDana>-30</pomakDana></kandidat>
+    <ocekivaniEmail>bezprioriteta@test.ba</ocekivaniEmail>
+  </scenarij>
 </scenariji>

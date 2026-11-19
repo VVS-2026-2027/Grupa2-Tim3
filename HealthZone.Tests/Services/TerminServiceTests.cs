@@ -156,6 +156,14 @@ public static class TerminServicePodaci
         XmlLoader.Ucitaj("TerminService_terminiPacijenta.xml", "scenarij")
                  .Select(x => new object[] { (string)x.Element("pacijentId")!, (int)x.Element("ocekivaniPrviId")! });
 
+    public static IEnumerable<object[]> ZakazivanjeDetalji() =>
+        XmlLoader.Ucitaj("TerminService_zakazivanjeDetalji.xml", "scenarij")
+                 .Select(x => new object[] { NoviTerminIzXml(x), (int)x.Element("ocekivaniBrojMailova")! });
+
+    public static IEnumerable<object[]> OtkazivanjeBezEmaila() =>
+        CsvLoader.Ucitaj("TerminService_otkazivanjeBezEmaila.csv")
+                 .Select(r => new object[] { int.Parse(r[0]) });
+
     public static IEnumerable<object[]> BrojTermina() =>
         CsvLoader.Ucitaj("TerminService_brojTermina.csv")
                  .Select(r => new object[] { int.Parse(r[0]) });
@@ -178,10 +186,24 @@ public static class TerminServicePodaci
             ? null
             : new Korisnik { Ime = (string)x.Element("doktorIme")!, Prezime = (string)x.Element("doktorPrezime")! },
         PacijentID = (string)x.Element("pacijentId")!,
-        Pacijent = new Korisnik { Email = PrazanUNull((string)x.Element("email")!) },
+        Pacijent = x.Element("email") is null ? null : new Korisnik { Email = PrazanUNull((string)x.Element("email")!) },
+        Usluga = x.Element("usluga") is null ? null : new MedicinskaUsluga { Naziv = (string)x.Element("usluga")! },
         Datum = DateTime.Today.AddDays((int)x.Element("pomakDana")!),
         Vrijeme = new TimeOnly((int)x.Element("sat")!, 0),
         Status = Enum.Parse<Status>((string)x.Element("status")!)
+    };
+
+    // Novi termin iz XML-a: doktor, usluga i pacijent su opcionalni (ako elementa nema, svojstvo je null).
+    public static Termin NoviTerminIzXml(XElement x) => new Termin
+    {
+        DoktorID = (string)x.Element("doktorId")!,
+        Doktor = x.Element("doktorIme") is null
+            ? null
+            : new Korisnik { Ime = (string)x.Element("doktorIme")!, Prezime = (string)x.Element("doktorPrezime")! },
+        Usluga = x.Element("usluga") is null ? null : new MedicinskaUsluga { Naziv = (string)x.Element("usluga")! },
+        Pacijent = x.Element("pacijentEmail") is null ? null : new Korisnik { Email = (string)x.Element("pacijentEmail")! },
+        Datum = DateTime.Today.AddDays((int)x.Element("pomakDana")!),
+        Vrijeme = new TimeOnly((int)x.Element("sat")!, 0)
     };
 
     // Novi termin koji pacijent želi zakazati (još nije u "bazi").
@@ -203,11 +225,11 @@ public static class TerminServicePodaci
     public static KorisnikNaListi NapraviKandidata(XElement x) => new KorisnikNaListi
     {
         Datum = DateTime.Today.AddDays((int)x.Element("pomakDana")!),
-        Lista = new ListaCekanja { DoktorID = (string)x.Element("doktorId")! },
+        Lista = x.Element("doktorId") is null ? null : new ListaCekanja { DoktorID = (string)x.Element("doktorId")! },
         Korisnik = new Korisnik
         {
             Email = (string)x.Element("email")!,
-            Prioritet = Enum.Parse<Prioritet>((string)x.Element("prioritet")!)
+            Prioritet = x.Element("prioritet") is null ? null : Enum.Parse<Prioritet>((string)x.Element("prioritet")!)
         }
     };
 
@@ -363,6 +385,21 @@ public class TerminServiceTests
         // Arrange
         var termin = TerminServicePodaci.NoviTermin(doktorId, pacijentEmail, pomakDana, sat);
 
+        // Act
+        await _servis.ZakaziTerminAsync(termin);
+
+        // Assert
+        _email.Verify(e => e.PošaljiPotvrduTerminaAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+            It.IsAny<DateTime>(), It.IsAny<TimeOnly>(), It.IsAny<string>(), It.IsAny<int>()),
+            Times.Exactly(ocekivaniBrojMailova));
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(TerminServicePodaci.ZakazivanjeDetalji), typeof(TerminServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Irhad Brescic")]
+    public async Task ZakaziTerminAsync_RazliciteInformacijeOTerminu_SaljePotvrduSamoAkoPacijentImaEmail(Termin termin, int ocekivaniBrojMailova)
+    {
         // Act
         await _servis.ZakaziTerminAsync(termin);
 
@@ -541,6 +578,20 @@ public class TerminServiceTests
         // Assert
         _email.Verify(e => e.PošaljiOtkazTerminaAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
             It.IsAny<DateTime>(), It.IsAny<TimeOnly>()), Times.Once);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(TerminServicePodaci.OtkazivanjeBezEmaila), typeof(TerminServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Irhad Brescic")]
+    public async Task OtkaziTerminAsync_PacijentNemaEmail_NeSaljeEmailOOtkazu(int terminId)
+    {
+        // Act
+        await _servis.OtkaziTerminAsync(terminId);
+
+        // Assert
+        _email.Verify(e => e.PošaljiOtkazTerminaAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(),
+            It.IsAny<DateTime>(), It.IsAny<TimeOnly>()), Times.Never);
     }
 
     [TestMethod]
