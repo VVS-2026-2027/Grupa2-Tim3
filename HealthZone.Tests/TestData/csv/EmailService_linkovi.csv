@@ -1,0 +1,3 @@
+email;ime;doktor;pomakDana;vrijeme;usluga;terminId;linkPotvrde;linkOtkaza
+amra.hodzic@mail.ba;Amra Hodžić;dr. Senad Imamović;2;09:30;Kardiološki pregled;15;/Termin/PotvrdiIzMaila/15;/Termin/OtkaziIzMaila/15
+selma.kuric@mail.ba;Selma Kurić;dr. Maja Ćorić;5;13:00;Pedijatrijski pregled;42;/Termin/PotvrdiIzMaila/42;/Termin/OtkaziIzMaila/42

@@ -1,0 +1,5 @@
+metoda;email;ime;doktor;pomakDana;vrijeme;usluga;terminId;ocekivaniNaslov
+PošaljiPotvrduTerminaAsync;amra.hodzic@mail.ba;Amra Hodžić;dr. Senad Imamović;2;09:30;Kardiološki pregled;15;✅ Potvrda zakazanog termina — HealthZone
+PošaljiOtkazTerminaAsync;kenan.begic@mail.ba;Kenan Begić;dr. Maja Ćorić;3;10:00;;0;❌ Otkazivanje termina — HealthZone
+PošaljiPodsjetnikAsync;lejla.music@mail.ba;Lejla Mušić;dr. Senad Imamović;1;11:15;Pedijatrijski pregled;0;🔔 Podsjetnik: termin sutra — HealthZone
+PošaljiObavještenjeListe;haris.kovac@mail.ba;Haris Kovač;dr. Maja Ćorić;4;08:45;;0;🕐 Termin dostupan — HealthZone lista čekanja

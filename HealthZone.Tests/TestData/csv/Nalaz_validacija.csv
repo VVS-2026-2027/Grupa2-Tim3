@@ -1,0 +1,7 @@
+opis;dijagnoza;terapija;pacijentId;ocekivaneGreske
+Kontrolni pregled;Hipertenzija;Beta blokatori;p-1;
+;Hipertenzija;Beta blokatori;p-1;Polje Opis je obavezno.
+Kontrolni pregled;;Beta blokatori;p-1;Polje Dijagnoza je obavezno.
+Kontrolni pregled;Hipertenzija;;p-1;Polje Terapija je obavezno.
+Kontrolni pregled;Hipertenzija;Beta blokatori;;Polje Pacijent je obavezno.
+;;;;Polje Opis je obavezno.|Polje Dijagnoza je obavezno.|Polje Terapija je obavezno.|Polje Pacijent je obavezno.

@@ -1,0 +1,7 @@
+entitet;straniKljuc;ponasanje
+Recenzija;DoktorID;NoAction
+Recenzija;PacijentID;NoAction
+Termin;DoktorID;NoAction
+Termin;PacijentID;NoAction
+KorisnikNaListi;ListaID;NoAction
+KorisnikNaListi;KorisnikID;NoAction

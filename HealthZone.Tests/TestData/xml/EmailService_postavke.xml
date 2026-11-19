@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- SMTP postavke s kojima se pravi EmailService u testovima i format datuma/vremena u mailu. -->
+<postavke host="smtp.mailtrap.io" port="2525" ssl="true" korisnik="healthzone-test" lozinka="tajna-lozinka-123"
+          fromEmail="noreply@healthzone.ba" fromName="HealthZone Poliklinika"
+          formatDatuma="dd.MM.yyyy" formatVremena="HH:mm" />
