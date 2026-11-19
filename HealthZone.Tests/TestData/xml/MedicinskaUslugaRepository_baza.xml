@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Usluge koje se prije svakog testa upisuju u InMemory bazu. -->
+<baza>
+  <usluga id="1" naziv="Opći pregled" vrsta="OpcaMedicina" opis="Osnovni ljekarski pregled" cijena="30.00" />
+  <usluga id="2" naziv="EKG" vrsta="Kardiologija" opis="Snimanje rada srca" cijena="40.00" />
+  <usluga id="3" naziv="Ultrazvuk srca" vrsta="Kardiologija" opis="Ultrazvučni pregled srca" cijena="80.00" />
+</baza>
