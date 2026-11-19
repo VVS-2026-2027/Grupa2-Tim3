@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Id-jevi notifikacija koje servis vraća za Index. -->
+<scenariji>
+  <scenarij><ids>1,2,3</ids></scenarij>
+  <scenarij><ids>7</ids></scenarij>
+  <scenarij><ids></ids></scenarij>
+</scenariji>

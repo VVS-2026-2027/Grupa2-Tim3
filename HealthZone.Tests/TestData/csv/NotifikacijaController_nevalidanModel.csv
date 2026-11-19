@@ -1,0 +1,3 @@
+id;terminId;polje;greska
+1;10;Poruka;Polje Poruka je obavezno.
+2;0;TerminID;Polje Termin je obavezno.

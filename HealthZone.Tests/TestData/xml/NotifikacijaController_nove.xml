@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Nove notifikacije koje administrator unosi kroz formu. -->
+<notifikacije>
+  <notifikacija><terminId>10</terminId><poruka>Termin je zakazan.</poruka></notifikacija>
+  <notifikacija><terminId>11</terminId><poruka>Termin je pomjeren na drugi datum.</poruka></notifikacija>
+</notifikacije>
