@@ -1,7 +1,9 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Termini koje vraća zamjenski ITerminService. Termin bez pacijentId nema učitanog pacijenta. -->
 <termini>
-  <scenarij>
-    <doktorId>d1</doktorId>
-    <ocekivaniBrojPacijenata>2</ocekivaniBrojPacijenata>
-  </scenarij>
+  <termin id="1" doktorId="d-1" pacijentId="p-1" />
+  <termin id="2" doktorId="d-1" pacijentId="p-1" />
+  <termin id="3" doktorId="d-1" pacijentId="p-2" />
+  <termin id="4" doktorId="d-2" pacijentId="p-3" />
+  <termin id="5" doktorId="d-1" />
 </termini>

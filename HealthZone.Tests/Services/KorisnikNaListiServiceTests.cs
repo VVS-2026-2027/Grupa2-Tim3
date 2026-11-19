@@ -6,443 +6,615 @@ using Moq;
 
 namespace HealthZone.Tests;
 
-// ─── Izvori podataka i pomoćne metode za KorisnikNaListiServiceTests ─────
+// ─── Izvori podataka i pomoćne metode za KorisnikNaListiServiceTests ────
 public static class KorisnikNaListiServicePodaci
 {
-    public static IEnumerable<object[]> VecNaListiCsv() =>
-        CsvLoader.Ucitaj("KorisnikNaListiService_dodavanje.csv")
-                 .Select(r => new object[] { r[0], int.Parse(r[1]), r[2] });
+    // ── pomoćne metode ──
 
-    public static IEnumerable<object[]> PozicijeCsv() =>
-        CsvLoader.Ucitaj("KorisnikNaListiService_pozicije.csv")
-                 .Select(r => new object[] { int.Parse(r[0]), r[1], int.Parse(r[2]) });
+    // Stavka liste čekanja iz XML "baze". Datum prijave je pomak u danima od danas.
+    // Bez atributa prioritet pacijent nema prioritet, a sa bezKorisnika="true" pacijent nije učitan.
+    public static KorisnikNaListi NapraviStavku(XElement x) => new()
+    {
+        KorisnikNaListiID = (int)x.Attribute("id")!,
+        ListaID = (int)x.Attribute("listaId")!,
+        KorisnikID = (string)x.Attribute("korisnikId")!,
+        Datum = DateTime.Today.AddDays((int)x.Attribute("pomakDana")!),
+        Korisnik = (bool?)x.Attribute("bezKorisnika") == true ? null : new Korisnik
+        {
+            Id = (string)x.Attribute("korisnikId")!,
+            Prioritet = x.Attribute("prioritet") == null ? null : Enum.Parse<Prioritet>((string)x.Attribute("prioritet")!)
+        }
+    };
 
-    public static IEnumerable<object[]> SortiranjeXml() =>
-        XmlLoader.Ucitaj("KorisnikNaListiService_sortiranje.xml", "scenarij")
-                 .Select(x => new object[]
-                 {
-                     (int)x.Element("listaId")!,
-                     (string)x.Element("ocekivaniPrviPacijent")!,
-                     (int)x.Element("ukupnoPacijenata")!
-                 });
+    public static List<KorisnikNaListi> NapraviBazu(IEnumerable<XElement> baza) => baza.Select(NapraviStavku).ToList();
 
-    public static IEnumerable<object[]> TerminiXml() =>
-        XmlLoader.Ucitaj("KorisnikNaListiService_termini.xml", "scenarij")
-                 .Select(x => new object[]
-                 {
-                     (string)x.Element("doktorId")!,
-                     (int)x.Element("ocekivaniBrojPacijenata")!
-                 });
+    public static KorisnikNaListi IzBaze(IEnumerable<XElement> baza, int id) =>
+        NapraviBazu(baza).Single(k => k.KorisnikNaListiID == id);
+
+    // Termin iz XML-a. Bez atributa pacijentId termin nema učitanog pacijenta.
+    public static Termin NapraviTermin(XElement x) => new()
+    {
+        TerminId = (int)x.Attribute("id")!,
+        DoktorID = (string)x.Attribute("doktorId")!,
+        PacijentID = (string?)x.Attribute("pacijentId") ?? string.Empty,
+        Pacijent = x.Attribute("pacijentId") == null ? null : new Korisnik { Id = (string)x.Attribute("pacijentId")! }
+    };
+
+    public static List<Termin> NapraviTermine(IEnumerable<XElement> termini) => termini.Select(NapraviTermin).ToList();
+
+    public static List<ListaCekanja> NapraviListe(int broj) =>
+        Enumerable.Range(1, broj).Select(id => new ListaCekanja { ListaId = id }).ToList();
+
+    public static List<Korisnik> NapraviKorisnike(int broj) =>
+        Enumerable.Range(1, broj).Select(i => new Korisnik { Id = $"k-{i}" }).ToList();
+
+    public static int[] Ids(string lista) =>
+        lista.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToArray();
+
+    public static string[] Lista(string lista) => lista.Split(',', StringSplitOptions.RemoveEmptyEntries);
+
+    // ── izvori podataka ──
+
+    public static IEnumerable<object[]> BrojUBazi() =>
+        XmlLoader.Ucitaj("KorisnikNaListiService_baza.xml", "baza").Select(b => new object[] { b.Elements("stavka").Count() });
+
+    public static IEnumerable<object[]> Sortiranje() =>
+        CsvLoader.Ucitaj("KorisnikNaListiService_sortiranje.csv").Select(r => new object[] { int.Parse(r[0]), Ids(r[1]) });
+
+    public static IEnumerable<object[]> SljedeciPacijenti() =>
+        XmlLoader.Ucitaj("KorisnikNaListiService_sljedeci.xml", "scenarij").Select(x => new object[]
+        {
+            (int)x.Element("listaId")!,
+            (string)x.Element("ocekivaniKorisnikId")!
+        });
+
+    public static IEnumerable<object[]> PrazneListe() =>
+        CsvLoader.Ucitaj("KorisnikNaListiService_praznaLista.csv").Select(r => new object[] { int.Parse(r[0]) });
+
+    private static IEnumerable<string[]> Pozicije() => CsvLoader.Ucitaj("KorisnikNaListiService_pozicije.csv");
+
+    public static IEnumerable<object[]> PacijentiNaListi() =>
+        Pozicije().Where(r => r[2] != "-1").Select(r => new object[] { int.Parse(r[0]), r[1], int.Parse(r[2]) });
+
+    public static IEnumerable<object[]> PacijentiVanListe() =>
+        Pozicije().Where(r => r[2] == "-1").Select(r => new object[] { int.Parse(r[0]), r[1], int.Parse(r[2]) });
+
+    public static IEnumerable<object[]> BrojNaListi() =>
+        CsvLoader.Ucitaj("KorisnikNaListiService_brojNaListi.csv").Select(r => new object[] { int.Parse(r[0]), int.Parse(r[1]) });
+
+    public static IEnumerable<object[]> ListeKorisnika() =>
+        XmlLoader.Ucitaj("KorisnikNaListiService_listeKorisnika.xml", "scenarij").Select(x => new object[]
+        {
+            (string)x.Element("korisnikId")!,
+            Ids((string)x.Element("ocekivaneStavke")!)
+        });
+
+    public static IEnumerable<object[]> Duplikati() =>
+        CsvLoader.Ucitaj("KorisnikNaListiService_duplikat.csv").Select(r => new object[] { r[0], int.Parse(r[1]), r[2] });
+
+    public static IEnumerable<object[]> DuplikatiBezPoruke() =>
+        CsvLoader.Ucitaj("KorisnikNaListiService_duplikat.csv").Select(r => new object[] { r[0], int.Parse(r[1]) });
+
+    public static IEnumerable<object[]> NoveStavke() =>
+        CsvLoader.Ucitaj("KorisnikNaListiService_novaStavka.csv").Select(r => new object[] { r[0], int.Parse(r[1]) });
+
+    public static IEnumerable<object[]> NepostojeceStavke() =>
+        CsvLoader.Ucitaj("KorisnikNaListiService_nepostojecaStavka.csv").Select(r => new object[] { int.Parse(r[0]), r[1] });
+
+    public static IEnumerable<object[]> NepostojeciIds() =>
+        CsvLoader.Ucitaj("KorisnikNaListiService_nepostojecaStavka.csv").Select(r => new object[] { int.Parse(r[0]) });
+
+    public static IEnumerable<object[]> PostojeceStavke() =>
+        CsvLoader.Ucitaj("KorisnikNaListiService_postojecaStavka.csv").Select(r => new object[] { int.Parse(r[0]), r[1] });
+
+    public static IEnumerable<object[]> PostojeciIds() =>
+        CsvLoader.Ucitaj("KorisnikNaListiService_postojecaStavka.csv").Select(r => new object[] { int.Parse(r[0]) });
+
+    public static IEnumerable<object[]> PacijentiDoktora() =>
+        CsvLoader.Ucitaj("KorisnikNaListiService_pacijentiDoktora.csv").Select(r => new object[] { r[0], Lista(r[1]) });
+
+    public static IEnumerable<object[]> Doktori() =>
+        CsvLoader.Ucitaj("KorisnikNaListiService_pacijentiDoktora.csv").Select(r => new object[] { r[0] });
+
+    public static IEnumerable<object[]> BrojListi() =>
+        CsvLoader.Ucitaj("KorisnikNaListiService_listeCekanja.csv").Select(r => new object[] { int.Parse(r[0]) });
+
+    public static IEnumerable<object[]> BrojKorisnika() =>
+        CsvLoader.Ucitaj("KorisnikNaListiService_korisnici.csv").Select(r => new object[] { int.Parse(r[0]) });
+
+    public static IEnumerable<object[]> Snimanje() =>
+        CsvLoader.Ucitaj("KorisnikNaListiService_snimanje.csv").Select(r => new object[] { int.Parse(r[0]) });
 }
 
 // ─── Testovi ────────────────────────────────────────────────────────────
+// Sva tri repozitorija i ITerminService su zamijenjeni Moq objektima. ITerminService je drugi servis,
+// pa se pravi TerminService ne poziva: mock vraća termine iz XML-a (Setup) i provjerava se poziv (Verify).
 [TestClass]
 public class KorisnikNaListiServiceTests
 {
-    private static List<XElement> _podaciSortiranje = null!;
+    private static List<XElement> _baza = null!;      // samo za čitanje
+    private static List<XElement> _termini = null!;   // samo za čitanje
 
-    private Mock<IKorisnikNaListiRepository> _korisnikNaListiRepo = null!;
-    private Mock<IListaCekanjaRepository> _listaCekanjaRepo = null!;
+    private Mock<IKorisnikNaListiRepository> _stavkeRepo = null!;
+    private Mock<IListaCekanjaRepository> _listeRepo = null!;
     private Mock<IKorisnikRepository> _korisnikRepo = null!;
-    private Mock<ITerminService> _terminService = null!;
+    private Mock<ITerminService> _terminServis = null!;
     private KorisnikNaListiService _servis = null!;
 
     [ClassInitialize]
     public static void ClassInit(TestContext context)
     {
-        _podaciSortiranje = XmlLoader.Ucitaj("KorisnikNaListiService_sortiranje.xml", "scenarij").ToList();
+        _baza = XmlLoader.Ucitaj("KorisnikNaListiService_baza.xml", "stavka").ToList();
+        _termini = XmlLoader.Ucitaj("KorisnikNaListiService_termini.xml", "termin").ToList();
     }
 
     [TestInitialize]
     public void Setup()
     {
-        _korisnikNaListiRepo = new Mock<IKorisnikNaListiRepository>();
-        _listaCekanjaRepo = new Mock<IListaCekanjaRepository>();
+        _stavkeRepo = new Mock<IKorisnikNaListiRepository>();
+        _listeRepo = new Mock<IListaCekanjaRepository>();
         _korisnikRepo = new Mock<IKorisnikRepository>();
-        _terminService = new Mock<ITerminService>();
-
-        _servis = new KorisnikNaListiService(
-            _korisnikNaListiRepo.Object,
-            _listaCekanjaRepo.Object,
-            _korisnikRepo.Object,
-            _terminService.Object);
+        _terminServis = new Mock<ITerminService>();
+        _stavkeRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(KorisnikNaListiServicePodaci.NapraviBazu(_baza));
+        _terminServis.Setup(s => s.GetAllAsync()).ReturnsAsync(KorisnikNaListiServicePodaci.NapraviTermine(_termini));
+        _servis = new KorisnikNaListiService(_stavkeRepo.Object, _listeRepo.Object, _korisnikRepo.Object, _terminServis.Object);
     }
 
     [TestCleanup]
     public void Cleanup()
     {
-        _korisnikNaListiRepo.Reset();
-        _listaCekanjaRepo.Reset();
+        _stavkeRepo.Reset();
+        _listeRepo.Reset();
         _korisnikRepo.Reset();
-        _terminService.Reset();
+        _terminServis.Reset();
+    }
+
+    // ─── SORTIRANA LISTA, SLJEDEĆI PACIJENT I POZICIJA ────────────────────
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikNaListiServicePodaci.Sortiranje), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    [Priority(1)]
+    public async Task GetSortiranaListaAsync_RazlicitiPrioriteti_SortiraPoPrioritetuPaDatumuPrijave(int listaId, int[] ocekivaniRedoslijed)
+    {
+        // Arrange (repozitorij vraća XML "bazu", pripremljeno u Setup)
+
+        // Act
+        var rezultat = await _servis.GetSortiranaListaAsync(listaId);
+
+        // Assert
+        CollectionAssert.AreEqual(ocekivaniRedoslijed, rezultat.Select(k => k.KorisnikNaListiID).ToArray());
     }
 
     [TestMethod]
-    [DynamicData(nameof(KorisnikNaListiServicePodaci.VecNaListiCsv), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
-    [TestCategory("Stub"), TestCategory("DataDriven"), TestCategory("Izuzetak")]
-    [TestProperty("Autor", "Ramiz Plancic")]
+    [DynamicData(nameof(KorisnikNaListiServicePodaci.SljedeciPacijenti), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    [Priority(1)]
+    public async Task GetSljedeciPacijentAsync_ListaImaPacijente_VracaPrvogPoPrioritetu(int listaId, string ocekivaniKorisnikId)
+    {
+        // Arrange (repozitorij vraća XML "bazu", pripremljeno u Setup)
+
+        // Act
+        var rezultat = await _servis.GetSljedeciPacijentAsync(listaId);
+
+        // Assert
+        Assert.IsNotNull(rezultat);
+        Assert.AreEqual(ocekivaniKorisnikId, rezultat.KorisnikID);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikNaListiServicePodaci.PrazneListe), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task GetSljedeciPacijentAsync_ListaPrazna_VracaNull(int listaId)
+    {
+        // Arrange (repozitorij vraća XML "bazu", pripremljeno u Setup)
+
+        // Act
+        var rezultat = await _servis.GetSljedeciPacijentAsync(listaId);
+
+        // Assert
+        Assert.IsNull(rezultat);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikNaListiServicePodaci.PacijentiNaListi), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    [Priority(1)]
+    public async Task GetPozicijaAsync_PacijentNaListi_VracaPozicijuOdJedan(int listaId, string korisnikId, int ocekivanaPozicija)
+    {
+        // Arrange (repozitorij vraća XML "bazu", pripremljeno u Setup)
+
+        // Act
+        var rezultat = await _servis.GetPozicijaAsync(listaId, korisnikId);
+
+        // Assert
+        Assert.AreEqual(ocekivanaPozicija, rezultat);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikNaListiServicePodaci.PacijentiVanListe), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task GetPozicijaAsync_PacijentNijeNaListi_VracaMinusJedan(int listaId, string korisnikId, int ocekivanaPozicija)
+    {
+        // Arrange (repozitorij vraća XML "bazu", pripremljeno u Setup)
+
+        // Act
+        var rezultat = await _servis.GetPozicijaAsync(listaId, korisnikId);
+
+        // Assert
+        Assert.AreEqual(ocekivanaPozicija, rezultat);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikNaListiServicePodaci.BrojNaListi), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task GetBrojNaListiAsync_ZadanaLista_VracaBrojPacijenataNaNjoj(int listaId, int ocekivaniBroj)
+    {
+        // Arrange (repozitorij vraća XML "bazu", pripremljeno u Setup)
+
+        // Act
+        var rezultat = await _servis.GetBrojNaListiAsync(listaId);
+
+        // Assert
+        Assert.AreEqual(ocekivaniBroj, rezultat);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikNaListiServicePodaci.ListeKorisnika), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task GetListeKorisnikaAsync_ZadanPacijent_VracaSamoNjegoveStavke(string korisnikId, int[] ocekivaneStavke)
+    {
+        // Arrange (repozitorij vraća XML "bazu", pripremljeno u Setup)
+
+        // Act
+        var rezultat = await _servis.GetListeKorisnikaAsync(korisnikId);
+
+        // Assert
+        CollectionAssert.AreEquivalent(ocekivaneStavke, rezultat.Select(k => k.KorisnikNaListiID).ToArray());
+    }
+
+    // ─── DODAVANJE NA LISTU ───────────────────────────────────────────────
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikNaListiServicePodaci.Duplikati), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Izuzetak")]
+    [TestProperty("Autor", "Ahmed Spahic")]
     [Priority(1)]
     public async Task AddAsync_PacijentVecNaListi_BacaException(string korisnikId, int listaId, string ocekivanaPoruka)
     {
         // Arrange
-        var postojeci = new List<KorisnikNaListi>
-        {
-            new KorisnikNaListi { KorisnikID = korisnikId, ListaID = listaId }
-        };
-        _korisnikNaListiRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(postojeci);
-
-        var novi = new KorisnikNaListi { KorisnikID = korisnikId, ListaID = listaId };
+        var stavka = new KorisnikNaListi { KorisnikID = korisnikId, ListaID = listaId };
 
         // Act
-        var izuzetak = await Assert.ThrowsExceptionAsync<Exception>(() => _servis.AddAsync(novi));
+        var izuzetak = await Assert.ThrowsExceptionAsync<Exception>(() => _servis.AddAsync(stavka));
 
         // Assert
         Assert.AreEqual(ocekivanaPoruka, izuzetak.Message);
     }
 
     [TestMethod]
-    [DynamicData(nameof(KorisnikNaListiServicePodaci.VecNaListiCsv), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
-    [TestCategory("Mock"), TestCategory("DataDriven")]
-    [TestProperty("Autor", "Ramiz Plancic")]
-    public async Task AddAsync_NoviPacijent_DodajeURepozitorij(string korisnikId, int listaId, string opis)
+    [DynamicData(nameof(KorisnikNaListiServicePodaci.DuplikatiBezPoruke), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock"), TestCategory("Izuzetak")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task AddAsync_PacijentVecNaListi_NeDodajeStavku(string korisnikId, int listaId)
     {
         // Arrange
-        _korisnikNaListiRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<KorisnikNaListi>());
-        var novi = new KorisnikNaListi { KorisnikID = "drugi_pacijent", ListaID = listaId };
+        var stavka = new KorisnikNaListi { KorisnikID = korisnikId, ListaID = listaId };
 
         // Act
-        await _servis.AddAsync(novi);
+        await Assert.ThrowsExceptionAsync<Exception>(() => _servis.AddAsync(stavka));
 
         // Assert
-        _korisnikNaListiRepo.Verify(r => r.AddAsync(novi), Times.Once);
+        _stavkeRepo.Verify(r => r.AddAsync(It.IsAny<KorisnikNaListi>()), Times.Never);
     }
 
     [TestMethod]
-    [DynamicData(nameof(KorisnikNaListiServicePodaci.VecNaListiCsv), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
-    [TestCategory("Mock"), TestCategory("DataDriven")]
-    [TestProperty("Autor", "Ramiz Plancic")]
-    public async Task AddAsync_NoviPacijent_PozivaSaveChanges(string korisnikId, int listaId, string opis)
+    [DynamicData(nameof(KorisnikNaListiServicePodaci.NoveStavke), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    [Priority(1)]
+    public async Task AddAsync_NoviPacijent_DodajeStavkuURepozitorij(string korisnikId, int listaId)
     {
         // Arrange
-        _korisnikNaListiRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<KorisnikNaListi>());
-        var novi = new KorisnikNaListi { KorisnikID = "drugi_pacijent", ListaID = listaId };
+        var stavka = new KorisnikNaListi { KorisnikID = korisnikId, ListaID = listaId };
 
         // Act
-        await _servis.AddAsync(novi);
+        await _servis.AddAsync(stavka);
 
         // Assert
-        _korisnikNaListiRepo.Verify(r => r.SaveChangesAsync(), Times.Once);
+        _stavkeRepo.Verify(r => r.AddAsync(stavka), Times.Once);
     }
 
     [TestMethod]
-    [DynamicData(nameof(KorisnikNaListiServicePodaci.PozicijeCsv), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
-    [TestCategory("Stub"), TestCategory("DataDriven")]
-    [TestProperty("Autor", "Ramiz Plancic")]
-    public async Task GetByIdAsync_PozivMetode_VracaStavkuIzRepozitorija(int listaId, string korisnikId, int ocekivanaPozicija)
+    [DynamicData(nameof(KorisnikNaListiServicePodaci.NoveStavke), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task AddAsync_NoviPacijent_SnimaPromjene(string korisnikId, int listaId)
     {
         // Arrange
-        var ocekivani = new KorisnikNaListi { KorisnikNaListiID = listaId, KorisnikID = korisnikId };
-        _korisnikNaListiRepo.Setup(r => r.GetByIdAsync(listaId)).ReturnsAsync(ocekivani);
+        var stavka = new KorisnikNaListi { KorisnikID = korisnikId, ListaID = listaId };
 
         // Act
-        var rezultat = await _servis.GetByIdAsync(listaId);
+        await _servis.AddAsync(stavka);
 
         // Assert
-        Assert.AreEqual(ocekivani, rezultat);
+        _stavkeRepo.Verify(r => r.SaveChangesAsync(), Times.Once);
     }
 
     [TestMethod]
-    [DynamicData(nameof(KorisnikNaListiServicePodaci.PozicijeCsv), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
-    [TestCategory("Stub"), TestCategory("DataDriven")]
-    [TestProperty("Autor", "Ramiz Plancic")]
-    public async Task GetAllAsync_PostojeStavke_VracaKolekciju(int listaId, string korisnikId, int pozicija)
+    [DynamicData(nameof(KorisnikNaListiServicePodaci.NoveStavke), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task AddAsync_NoviPacijent_PostavljaTrenutniDatumPrijave(string korisnikId, int listaId)
     {
         // Arrange
-        var lista = new List<KorisnikNaListi> { new KorisnikNaListi { KorisnikID = korisnikId } };
-        _korisnikNaListiRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(lista);
+        var stavka = new KorisnikNaListi { KorisnikID = korisnikId, ListaID = listaId };
+        var prije = DateTime.Now;
 
         // Act
-        var rezultat = await _servis.GetAllAsync();
+        await _servis.AddAsync(stavka);
 
         // Assert
-        Assert.AreEqual(1, rezultat.Count());
+        Assert.IsTrue(stavka.Datum >= prije);
+    }
+
+    // ─── UKLANJANJE S LISTE ───────────────────────────────────────────────
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikNaListiServicePodaci.NepostojeceStavke), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Izuzetak")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    [Priority(1)]
+    public async Task UkloniSListeAsync_StavkaNePostoji_BacaException(int id, string ocekivanaPoruka)
+    {
+        // Arrange
+        _stavkeRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync((KorisnikNaListi?)null);
+
+        // Act
+        var izuzetak = await Assert.ThrowsExceptionAsync<Exception>(() => _servis.UkloniSListeAsync(id));
+
+        // Assert
+        Assert.AreEqual(ocekivanaPoruka, izuzetak.Message);
     }
 
     [TestMethod]
-    [DynamicData(nameof(KorisnikNaListiServicePodaci.PozicijeCsv), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
-    [TestCategory("Mock"), TestCategory("DataDriven")]
-    [TestProperty("Autor", "Ramiz Plancic")]
-    public void Update_ValidanZapis_PozivaUpdateURepou(int listaId, string korisnikId, int pozicija)
+    [DynamicData(nameof(KorisnikNaListiServicePodaci.NepostojeciIds), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock"), TestCategory("Izuzetak")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task UkloniSListeAsync_StavkaNePostoji_NistaNeBrise(int id)
     {
         // Arrange
-        var stavka = new KorisnikNaListi { KorisnikNaListiID = listaId, KorisnikID = korisnikId };
+        _stavkeRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync((KorisnikNaListi?)null);
 
         // Act
-        _servis.Update(stavka);
+        await Assert.ThrowsExceptionAsync<Exception>(() => _servis.UkloniSListeAsync(id));
 
         // Assert
-        _korisnikNaListiRepo.Verify(r => r.Update(stavka), Times.Once);
+        _stavkeRepo.Verify(r => r.Delete(It.IsAny<KorisnikNaListi>()), Times.Never);
     }
 
     [TestMethod]
-    [DynamicData(nameof(KorisnikNaListiServicePodaci.PozicijeCsv), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
-    [TestCategory("Mock"), TestCategory("DataDriven")]
-    [TestProperty("Autor", "Ramiz Plancic")]
-    public void Delete_ValidanZapis_PozivaDeleteURepou(int listaId, string korisnikId, int pozicija)
+    [DynamicData(nameof(KorisnikNaListiServicePodaci.PostojeciIds), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task UkloniSListeAsync_StavkaPostoji_BriseStavku(int id)
     {
         // Arrange
-        var stavka = new KorisnikNaListi { KorisnikNaListiID = listaId, KorisnikID = korisnikId };
+        var stavka = KorisnikNaListiServicePodaci.IzBaze(_baza, id);
+        _stavkeRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(stavka);
 
         // Act
-        _servis.Delete(stavka);
+        await _servis.UkloniSListeAsync(id);
 
         // Assert
-        _korisnikNaListiRepo.Verify(r => r.Delete(stavka), Times.Once);
+        _stavkeRepo.Verify(r => r.Delete(stavka), Times.Once);
     }
 
     [TestMethod]
-    [DynamicData(nameof(KorisnikNaListiServicePodaci.PozicijeCsv), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
-    [TestCategory("Stub"), TestCategory("DataDriven")]
-    [TestProperty("Autor", "Ramiz Plancic")]
-    public async Task SaveChangesAsync_PozivMetode_VracaBrojIzmjena(int listaId, string korisnikId, int pozicija)
+    [DynamicData(nameof(KorisnikNaListiServicePodaci.PostojeciIds), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task UkloniSListeAsync_StavkaPostoji_SnimaPromjene(int id)
     {
         // Arrange
-        _korisnikNaListiRepo.Setup(r => r.SaveChangesAsync()).ReturnsAsync(1);
+        _stavkeRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(KorisnikNaListiServicePodaci.IzBaze(_baza, id));
 
         // Act
-        var rezultat = await _servis.SaveChangesAsync();
+        await _servis.UkloniSListeAsync(id);
 
         // Assert
-        Assert.AreEqual(1, rezultat);
+        _stavkeRepo.Verify(r => r.SaveChangesAsync(), Times.Once);
+    }
+
+    // ─── PACIJENTI S TERMINOM KOD DOKTORA (drugi servis je mock) ──────────
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikNaListiServicePodaci.PacijentiDoktora), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    [Priority(1)]
+    public async Task GetPacijentiSaTerminomAsync_DoktorImaTermine_VracaJedinstvenePacijente(string doktorId, string[] ocekivaniPacijenti)
+    {
+        // Arrange (mock ITerminService vraća termine iz XML-a, pripremljeno u Setup)
+
+        // Act
+        var rezultat = await _servis.GetPacijentiSaTerminomAsync(doktorId);
+
+        // Assert
+        CollectionAssert.AreEquivalent(ocekivaniPacijenti, rezultat.Select(p => p.Id).ToArray());
     }
 
     [TestMethod]
-    [DynamicData(nameof(KorisnikNaListiServicePodaci.VecNaListiCsv), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
-    [TestCategory("Stub"), TestCategory("DataDriven"), TestCategory("Izuzetak")]
-    [TestProperty("Autor", "Ramiz Plancic")]
-    public async Task UkloniSListeAsync_NepostojecaStavka_BacaException(string korisnikId, int listaId, string poruka)
+    [DynamicData(nameof(KorisnikNaListiServicePodaci.Doktori), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task GetPacijentiSaTerminomAsync_Poziv_CitaTermineIzTerminServisa(string doktorId)
     {
-        // Arrange
-        _korisnikNaListiRepo.Setup(r => r.GetByIdAsync(999)).ReturnsAsync((KorisnikNaListi?)null);
+        // Arrange (mock ITerminService vraća termine iz XML-a, pripremljeno u Setup)
 
         // Act
-        var izuzetak = await Assert.ThrowsExceptionAsync<Exception>(() => _servis.UkloniSListeAsync(999));
+        await _servis.GetPacijentiSaTerminomAsync(doktorId);
 
         // Assert
-        Assert.AreEqual("Stavka nije pronađena na listi čekanja.", izuzetak.Message);
+        _terminServis.Verify(s => s.GetAllAsync(), Times.Once);
     }
 
-    [TestMethod]
-    [DynamicData(nameof(KorisnikNaListiServicePodaci.VecNaListiCsv), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
-    [TestCategory("Mock"), TestCategory("DataDriven")]
-    [TestProperty("Autor", "Ramiz Plancic")]
-    public async Task UkloniSListeAsync_PostojecaStavka_PozivaDelete(string korisnikId, int listaId, string poruka)
-    {
-        // Arrange
-        var stavka = new KorisnikNaListi { KorisnikNaListiID = 10 };
-        _korisnikNaListiRepo.Setup(r => r.GetByIdAsync(10)).ReturnsAsync(stavka);
-
-        // Act
-        await _servis.UkloniSListeAsync(10);
-
-        // Assert
-        _korisnikNaListiRepo.Verify(r => r.Delete(stavka), Times.Once);
-    }
+    // ─── POMOĆNE METODE (liste i korisnici) ───────────────────────────────
 
     [TestMethod]
-    [DynamicData(nameof(KorisnikNaListiServicePodaci.VecNaListiCsv), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
-    [TestCategory("Mock"), TestCategory("DataDriven")]
-    [TestProperty("Autor", "Ramiz Plancic")]
-    public async Task UkloniSListeAsync_PostojecaStavka_PozivaSaveChanges(string korisnikId, int listaId, string poruka)
+    [DynamicData(nameof(KorisnikNaListiServicePodaci.BrojListi), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task GetListeCekanjaAsync_PostojeListe_VracaListeIzRepozitorija(int brojListi)
     {
         // Arrange
-        var stavka = new KorisnikNaListi { KorisnikNaListiID = 10 };
-        _korisnikNaListiRepo.Setup(r => r.GetByIdAsync(10)).ReturnsAsync(stavka);
-
-        // Act
-        await _servis.UkloniSListeAsync(10);
-
-        // Assert
-        _korisnikNaListiRepo.Verify(r => r.SaveChangesAsync(), Times.Once);
-    }
-
-    [TestMethod]
-    [DynamicData(nameof(KorisnikNaListiServicePodaci.SortiranjeXml), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
-    [TestCategory("Stub"), TestCategory("DataDriven")]
-    [TestProperty("Autor", "Ramiz Plancic")]
-    public async Task GetSortiranaListaAsync_RazlicitiPrioriteti_SortiraIspravno(int listaId, string ocekivaniPrvi, int ukupno)
-    {
-        // Arrange
-        var lista = new List<KorisnikNaListi>
-        {
-            new KorisnikNaListi { ListaID = listaId, KorisnikID = "pacijent_nizak", Datum = DateTime.Today.AddDays(-5), Korisnik = new Korisnik { Prioritet = Prioritet.Nizak } },
-            new KorisnikNaListi { ListaID = listaId, KorisnikID = ocekivaniPrvi, Datum = DateTime.Today, Korisnik = new Korisnik { Prioritet = Prioritet.Visok } },
-            new KorisnikNaListi { ListaID = listaId, KorisnikID = "pacijent_srednji", Datum = DateTime.Today.AddDays(-2), Korisnik = new Korisnik { Prioritet = Prioritet.Srednji } }
-        };
-        _korisnikNaListiRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(lista);
-
-        // Act
-        var sortirano = (await _servis.GetSortiranaListaAsync(listaId)).ToList();
-
-        // Assert
-        Assert.AreEqual(ocekivaniPrvi, sortirano.First().KorisnikID);
-    }
-
-    [TestMethod]
-    [DynamicData(nameof(KorisnikNaListiServicePodaci.SortiranjeXml), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
-    [TestCategory("Stub"), TestCategory("DataDriven")]
-    [TestProperty("Autor", "Ramiz Plancic")]
-    public async Task GetSljedeciPacijentAsync_PostojePacijenti_VracaPrvog(int listaId, string ocekivaniPrvi, int ukupno)
-    {
-        // Arrange
-        var lista = new List<KorisnikNaListi>
-        {
-            new KorisnikNaListi { ListaID = listaId, KorisnikID = ocekivaniPrvi, Datum = DateTime.Today, Korisnik = new Korisnik { Prioritet = Prioritet.Visok } }
-        };
-        _korisnikNaListiRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(lista);
-
-        // Act
-        var sljedeci = await _servis.GetSljedeciPacijentAsync(listaId);
-
-        // Assert
-        Assert.AreEqual(ocekivaniPrvi, sljedeci?.KorisnikID);
-    }
-
-    [TestMethod]
-    [DynamicData(nameof(KorisnikNaListiServicePodaci.SortiranjeXml), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
-    [TestCategory("Stub"), TestCategory("DataDriven")]
-    [TestProperty("Autor", "Ramiz Plancic")]
-    public async Task GetSljedeciPacijentAsync_PraznaLista_VracaNull(int listaId, string ocekivaniPrvi, int ukupno)
-    {
-        // Arrange
-        _korisnikNaListiRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<KorisnikNaListi>());
-
-        // Act
-        var sljedeci = await _servis.GetSljedeciPacijentAsync(listaId);
-
-        // Assert
-        Assert.IsNull(sljedeci);
-    }
-
-    [TestMethod]
-    [DynamicData(nameof(KorisnikNaListiServicePodaci.PozicijeCsv), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
-    [TestCategory("Stub"), TestCategory("DataDriven")]
-    [TestProperty("Autor", "Ramiz Plancic")]
-    public async Task GetPozicijaAsync_KorisnikNaListi_VracaIspravnuPoziciju(int listaId, string korisnikId, int ocekivanaPozicija)
-    {
-        // Arrange
-        var lista = new List<KorisnikNaListi>
-        {
-            new KorisnikNaListi { ListaID = listaId, KorisnikID = "p1", Datum = DateTime.Today, Korisnik = new Korisnik { Prioritet = Prioritet.Visok } },
-            new KorisnikNaListi { ListaID = listaId, KorisnikID = "p2", Datum = DateTime.Today.AddDays(1), Korisnik = new Korisnik { Prioritet = Prioritet.Nizak } }
-        };
-        _korisnikNaListiRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(lista);
-
-        // Act
-        var pozicija = await _servis.GetPozicijaAsync(listaId, korisnikId);
-
-        // Assert
-        Assert.AreEqual(ocekivanaPozicija, pozicija);
-    }
-
-    [TestMethod]
-    [DynamicData(nameof(KorisnikNaListiServicePodaci.PozicijeCsv), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
-    [TestCategory("Stub"), TestCategory("DataDriven")]
-    [TestProperty("Autor", "Ramiz Plancic")]
-    public async Task GetListeKorisnikaAsync_KorisnikImaListe_VracaNjegoveStavke(int listaId, string korisnikId, int pozicija)
-    {
-        // Arrange
-        var stavke = new List<KorisnikNaListi>
-        {
-            new KorisnikNaListi { KorisnikID = korisnikId, ListaID = 1 },
-            new KorisnikNaListi { KorisnikID = "drugi", ListaID = 2 }
-        };
-        _korisnikNaListiRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(stavke);
-
-        // Act
-        var rezultat = await _servis.GetListeKorisnikaAsync(korisnikId);
-
-        // Assert
-        Assert.AreEqual(1, rezultat.Count());
-    }
-
-    [TestMethod]
-    [DynamicData(nameof(KorisnikNaListiServicePodaci.PozicijeCsv), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
-    [TestCategory("Stub"), TestCategory("DataDriven")]
-    [TestProperty("Autor", "Ramiz Plancic")]
-    public async Task GetBrojNaListiAsync_PostojePacijenti_VracaTacanBroj(int listaId, string korisnikId, int pozicija)
-    {
-        // Arrange
-        var stavke = new List<KorisnikNaListi>
-        {
-            new KorisnikNaListi { ListaID = listaId },
-            new KorisnikNaListi { ListaID = listaId }
-        };
-        _korisnikNaListiRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(stavke);
-
-        // Act
-        var broj = await _servis.GetBrojNaListiAsync(listaId);
-
-        // Assert
-        Assert.AreEqual(2, broj);
-    }
-
-    [TestMethod]
-    [DynamicData(nameof(KorisnikNaListiServicePodaci.TerminiXml), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
-    [TestCategory("Stub"), TestCategory("DataDriven")]
-    [TestProperty("Autor", "Ramiz Plancic")]
-    public async Task GetPacijentiSaTerminomAsync_DoktorImaTermine_VracaJedinstvenePacijente(string doktorId, int ocekivaniBroj)
-    {
-        // Arrange
-        var p1 = new Korisnik { Id = "pac1" };
-        var p2 = new Korisnik { Id = "pac2" };
-        var termini = new List<Termin>
-        {
-            new Termin { DoktorID = doktorId, Pacijent = p1 },
-            new Termin { DoktorID = doktorId, Pacijent = p1 },
-            new Termin { DoktorID = doktorId, Pacijent = p2 },
-            new Termin { DoktorID = "drugi_doktor", Pacijent = p1 }
-        };
-        _terminService.Setup(t => t.GetAllAsync()).ReturnsAsync(termini);
-
-        // Act
-        var pacijenti = await _servis.GetPacijentiSaTerminomAsync(doktorId);
-
-        // Assert
-        Assert.AreEqual(ocekivaniBroj, pacijenti.Count());
-    }
-
-    [TestMethod]
-    [DynamicData(nameof(KorisnikNaListiServicePodaci.PozicijeCsv), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
-    [TestCategory("Stub"), TestCategory("DataDriven")]
-    [TestProperty("Autor", "Ramiz Plancic")]
-    public async Task GetListeCekanjaAsync_PozivMetode_VracaSveListe(int listaId, string korisnikId, int pozicija)
-    {
-        // Arrange
-        var liste = new List<ListaCekanja> { new ListaCekanja { ListaId = 1 } };
-        _listaCekanjaRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(liste);
+        _listeRepo.Setup(r => r.GetAllAsync())
+                  .ReturnsAsync(KorisnikNaListiServicePodaci.NapraviListe(brojListi));
 
         // Act
         var rezultat = await _servis.GetListeCekanjaAsync();
 
         // Assert
-        Assert.AreEqual(1, rezultat.Count());
+        Assert.AreEqual(brojListi, rezultat.Count());
     }
 
     [TestMethod]
-    [DynamicData(nameof(KorisnikNaListiServicePodaci.PozicijeCsv), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
-    [TestCategory("Stub"), TestCategory("DataDriven")]
-    [TestProperty("Autor", "Ramiz Plancic")]
-    public async Task GetKorisniciAsync_PozivMetode_VracaSveKorisnike(int listaId, string korisnikId, int pozicija)
+    [DynamicData(nameof(KorisnikNaListiServicePodaci.BrojListi), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task GetListeCekanjaAsync_Poziv_CitaRepozitorijListi(int brojListi)
     {
         // Arrange
-        var korisnici = new List<Korisnik> { new Korisnik { Id = "k1" } };
-        _korisnikRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(korisnici);
+        _listeRepo.Setup(r => r.GetAllAsync())
+                  .ReturnsAsync(KorisnikNaListiServicePodaci.NapraviListe(brojListi));
+
+        // Act
+        await _servis.GetListeCekanjaAsync();
+
+        // Assert
+        _listeRepo.Verify(r => r.GetAllAsync(), Times.Once);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikNaListiServicePodaci.BrojKorisnika), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task GetKorisniciAsync_PostojeKorisnici_VracaKorisnikeIzRepozitorija(int brojKorisnika)
+    {
+        // Arrange
+        _korisnikRepo.Setup(r => r.GetAllAsync())
+                     .ReturnsAsync(KorisnikNaListiServicePodaci.NapraviKorisnike(brojKorisnika));
 
         // Act
         var rezultat = await _servis.GetKorisniciAsync();
 
         // Assert
-        Assert.AreEqual(1, rezultat.Count());
+        Assert.AreEqual(brojKorisnika, rezultat.Count());
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikNaListiServicePodaci.BrojKorisnika), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task GetKorisniciAsync_Poziv_CitaRepozitorijKorisnika(int brojKorisnika)
+    {
+        // Arrange
+        _korisnikRepo.Setup(r => r.GetAllAsync())
+                     .ReturnsAsync(KorisnikNaListiServicePodaci.NapraviKorisnike(brojKorisnika));
+
+        // Act
+        await _servis.GetKorisniciAsync();
+
+        // Assert
+        _korisnikRepo.Verify(r => r.GetAllAsync(), Times.Once);
+    }
+
+    // ─── PROSLJEĐIVANJE REPOZITORIJU ──────────────────────────────────────
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikNaListiServicePodaci.PostojeceStavke), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task GetByIdAsync_StavkaPostoji_VracaStavkuIzRepozitorija(int id, string ocekivaniKorisnikId)
+    {
+        // Arrange
+        _stavkeRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(KorisnikNaListiServicePodaci.IzBaze(_baza, id));
+
+        // Act
+        var rezultat = await _servis.GetByIdAsync(id);
+
+        // Assert
+        Assert.IsNotNull(rezultat);
+        Assert.AreEqual(ocekivaniKorisnikId, rezultat.KorisnikID);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikNaListiServicePodaci.BrojUBazi), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task GetAllAsync_RepozitorijImaStavke_VracaSveStavke(int ocekivaniBroj)
+    {
+        // Arrange (repozitorij vraća XML "bazu", pripremljeno u Setup)
+
+        // Act
+        var rezultat = await _servis.GetAllAsync();
+
+        // Assert
+        Assert.AreEqual(ocekivaniBroj, rezultat.Count());
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikNaListiServicePodaci.PostojeciIds), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public void Update_PostojecaStavka_ProsljedjujeRepozitoriju(int id)
+    {
+        // Arrange
+        var stavka = KorisnikNaListiServicePodaci.IzBaze(_baza, id);
+
+        // Act
+        _servis.Update(stavka);
+
+        // Assert
+        _stavkeRepo.Verify(r => r.Update(stavka), Times.Once);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikNaListiServicePodaci.PostojeciIds), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public void Delete_PostojecaStavka_ProsljedjujeRepozitoriju(int id)
+    {
+        // Arrange
+        var stavka = KorisnikNaListiServicePodaci.IzBaze(_baza, id);
+
+        // Act
+        _servis.Delete(stavka);
+
+        // Assert
+        _stavkeRepo.Verify(r => r.Delete(stavka), Times.Once);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikNaListiServicePodaci.Snimanje), typeof(KorisnikNaListiServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task SaveChangesAsync_RepozitorijSnimiPromjene_VracaBrojPromjena(int brojPromjena)
+    {
+        // Arrange
+        _stavkeRepo.Setup(r => r.SaveChangesAsync()).ReturnsAsync(brojPromjena);
+
+        // Act
+        var rezultat = await _servis.SaveChangesAsync();
+
+        // Assert
+        Assert.AreEqual(brojPromjena, rezultat);
     }
 }

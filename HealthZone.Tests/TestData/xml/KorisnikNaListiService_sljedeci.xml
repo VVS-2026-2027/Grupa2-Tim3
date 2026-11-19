@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Lista i pacijent koji je sljedeći na redu (najviši prioritet, pa najraniji datum prijave). -->
+<scenariji>
+  <scenarij><listaId>1</listaId><ocekivaniKorisnikId>p-4</ocekivaniKorisnikId></scenarij>
+  <scenarij><listaId>2</listaId><ocekivaniKorisnikId>p-6</ocekivaniKorisnikId></scenarij>
+  <scenarij><listaId>3</listaId><ocekivaniKorisnikId>p-8</ocekivaniKorisnikId></scenarij>
+</scenariji>

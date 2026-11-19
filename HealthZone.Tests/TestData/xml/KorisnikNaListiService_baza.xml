@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Stavke lista čekanja koje vraća zamjenski repozitorij. Datum prijave je pomak u danima od danas.
+     Stavka bez atributa prioritet: pacijent nema prioritet (računa se kao Nizak).
+     Stavka sa bezKorisnika="true": pacijent nije učitan (Korisnik je null). -->
+<baza>
+  <stavka id="1" listaId="1" korisnikId="p-1" prioritet="Nizak" pomakDana="-10" />
+  <stavka id="2" listaId="1" korisnikId="p-2" prioritet="Visok" pomakDana="-2" />
+  <stavka id="3" listaId="1" korisnikId="p-3" prioritet="Srednji" pomakDana="-5" />
+  <stavka id="4" listaId="1" korisnikId="p-4" prioritet="Visok" pomakDana="-8" />
+  <stavka id="5" listaId="1" korisnikId="p-5" pomakDana="-20" />
+  <stavka id="6" listaId="2" korisnikId="p-1" prioritet="Nizak" pomakDana="-1" />
+  <stavka id="7" listaId="2" korisnikId="p-6" prioritet="Srednji" pomakDana="-3" />
+  <stavka id="8" listaId="3" korisnikId="p-7" bezKorisnika="true" pomakDana="-4" />
+  <stavka id="9" listaId="3" korisnikId="p-8" prioritet="Visok" pomakDana="-1" />
+</baza>

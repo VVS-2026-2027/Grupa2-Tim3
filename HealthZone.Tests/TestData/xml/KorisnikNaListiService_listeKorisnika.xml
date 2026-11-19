@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pacijent i id-jevi stavki na kojima se nalazi. -->
+<scenariji>
+  <scenarij><korisnikId>p-1</korisnikId><ocekivaneStavke>1,6</ocekivaneStavke></scenarij>
+  <scenarij><korisnikId>p-6</korisnikId><ocekivaneStavke>7</ocekivaneStavke></scenarij>
+  <scenarij><korisnikId>p-99</korisnikId><ocekivaneStavke></ocekivaneStavke></scenarij>
+</scenariji>
