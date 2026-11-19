@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<recenzije>
+  <recenzija><id>1</id><pacijentId>pacijent-1</pacijentId><doktorId>doktor-1</doktorId></recenzija>
+  <recenzija><id>2</id><pacijentId>pacijent-2</pacijentId><doktorId>doktor-1</doktorId></recenzija>
+  <recenzija><id>3</id><pacijentId>pacijent-1</pacijentId><doktorId>doktor-2</doktorId></recenzija>
+</recenzije>

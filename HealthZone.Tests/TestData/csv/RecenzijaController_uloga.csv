@@ -1,0 +1,4 @@
+doktorId;uloga;mozeOstaviti
+doktor-1;Pacijent;true
+doktor-1;Doktor;false
+doktor-2;Administrator;false

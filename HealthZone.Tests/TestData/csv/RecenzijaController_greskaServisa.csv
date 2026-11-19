@@ -1,0 +1,3 @@
+pacijentId;doktorId;poruka
+pacijent-1;doktor-1;Već ste ocijenili ovog doktora. Obrišite postojeću recenziju za unos nove.
+pacijent-5;doktor-3;Možete recenzirati samo doktore kod kojih ste imali obavljeni pregled.

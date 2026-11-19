@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<doktori>
+  <doktor><id>doktor-1</id><ime>Amra</ime><prezime>Hodžić</prezime></doktor>
+  <doktor><id>doktor-2</id><ime>Kenan</ime><prezime>Begić</prezime></doktor>
+  <doktor><id>doktor-3</id><ime>Lejla</ime><prezime>Mujić</prezime></doktor>
+</doktori>
