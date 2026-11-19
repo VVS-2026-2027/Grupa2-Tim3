@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Podaci za notifikaciju koju servis kreira za termin. -->
+<scenariji>
+  <scenarij><terminId>10</terminId><poruka>Termin je zakazan.</poruka><status>NaCekanju</status></scenarij>
+  <scenarij><terminId>11</terminId><poruka>Termin je otkazan.</poruka><status>Otkazan</status></scenarij>
+</scenariji>

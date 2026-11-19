@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8" ?>
-<notifikacije>
-  <scenarij>
-    <pacijentId>p1</pacijentId>
-    <status>NaCekanju</status>
-    <ocekivanoNotifikacija>1</ocekivanoNotifikacija>
-  </scenarij>
-</notifikacije>

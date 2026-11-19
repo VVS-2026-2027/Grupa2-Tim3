@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Notifikacije koje vraća zamjenski repozitorij. Datum slanja je pomak u satima od trenutnog vremena.
+     Notifikacija bez atributa pacijentId nema učitan termin (Termin je null). -->
+<baza>
+  <notifikacija id="1" terminId="10" pacijentId="p-1" status="NaCekanju" pomakSati="-5" poruka="Termin je zakazan." />
+  <notifikacija id="2" terminId="10" pacijentId="p-1" status="Potvrdjen" pomakSati="-1" poruka="Termin je potvrđen." />
+  <notifikacija id="3" terminId="11" pacijentId="p-2" status="NaCekanju" pomakSati="-3" poruka="Termin je zakazan." />
+  <notifikacija id="4" terminId="12" pacijentId="p-1" status="Otkazan" pomakSati="-2" poruka="Termin je otkazan." />
+  <notifikacija id="5" terminId="13" status="Aktivan" pomakSati="-4" poruka="Termin je u toku." />
+</baza>

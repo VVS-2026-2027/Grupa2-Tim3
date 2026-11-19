@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pacijent i id-jevi njegovih notifikacija, od najnovije prema najstarijoj. -->
+<scenariji>
+  <scenarij><pacijentId>p-1</pacijentId><ocekivaniIds>2,4,1</ocekivaniIds></scenarij>
+  <scenarij><pacijentId>p-2</pacijentId><ocekivaniIds>3</ocekivaniIds></scenarij>
+  <scenarij><pacijentId>p-9</pacijentId><ocekivaniIds></ocekivaniIds></scenarij>
+</scenariji>
