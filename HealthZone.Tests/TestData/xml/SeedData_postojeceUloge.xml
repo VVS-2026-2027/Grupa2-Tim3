@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Uloge koje već postoje u bazi i koliko novih seed treba kreirati. -->
+<scenariji>
+  <scenarij>
+    <postojece></postojece>
+    <ocekivaniBrojNovih>4</ocekivaniBrojNovih>
+  </scenarij>
+  <scenarij>
+    <postojece>Administrator,Doktor</postojece>
+    <ocekivaniBrojNovih>2</ocekivaniBrojNovih>
+  </scenarij>
+  <scenarij>
+    <postojece>Pacijent</postojece>
+    <ocekivaniBrojNovih>3</ocekivaniBrojNovih>
+  </scenarij>
+  <scenarij>
+    <postojece>Administrator,Doktor,MedicinskaSestra,Pacijent</postojece>
+    <ocekivaniBrojNovih>0</ocekivaniBrojNovih>
+  </scenarij>
+</scenariji>
