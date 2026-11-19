@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<scenariji>
+  <scenarij>
+    <usluga><id>1</id><naziv>Opći pregled</naziv></usluga>
+    <usluga><id>2</id><naziv>EKG</naziv></usluga>
+    <usluga><id>3</id><naziv>Ultrazvuk srca</naziv></usluga>
+  </scenarij>
+  <scenarij>
+    <usluga><id>4</id><naziv>Pedijatrijski pregled</naziv></usluga>
+  </scenarij>
+  <scenarij></scenarij>
+</scenariji>
