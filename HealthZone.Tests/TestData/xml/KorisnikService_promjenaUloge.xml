@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<scenariji>
+  <scenarij>
+    <id>k-401</id>
+    <trenutneUloge>Pacijent</trenutneUloge>
+    <novaUloga>Doktor</novaUloga>
+    <uklanjaStare>true</uklanjaStare>
+  </scenarij>
+  <scenarij>
+    <id>k-402</id>
+    <trenutneUloge>Pacijent,MedicinskaSestra</trenutneUloge>
+    <novaUloga>Administrator</novaUloga>
+    <uklanjaStare>true</uklanjaStare>
+  </scenarij>
+  <scenarij>
+    <id>k-403</id>
+    <trenutneUloge></trenutneUloge>
+    <novaUloga>Pacijent</novaUloga>
+    <uklanjaStare>false</uklanjaStare>
+  </scenarij>
+</scenariji>

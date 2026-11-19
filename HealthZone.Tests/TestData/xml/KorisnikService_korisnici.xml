@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<scenariji>
+  <scenarij>
+    <korisnici>k-1,k-2,k-3</korisnici>
+    <ocekivaniBroj>3</ocekivaniBroj>
+  </scenarij>
+  <scenarij>
+    <korisnici>k-1</korisnici>
+    <ocekivaniBroj>1</ocekivaniBroj>
+  </scenarij>
+  <scenarij>
+    <korisnici></korisnici>
+    <ocekivaniBroj>0</ocekivaniBroj>
+  </scenarij>
+</scenariji>

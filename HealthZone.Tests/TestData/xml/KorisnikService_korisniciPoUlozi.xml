@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<scenariji>
+  <scenarij>
+    <metoda>GetDoktoriAsync</metoda>
+    <uloga>Doktor</uloga>
+    <korisnici>d-1,d-2</korisnici>
+    <ocekivaniBroj>2</ocekivaniBroj>
+  </scenarij>
+  <scenarij>
+    <metoda>GetPacijentiAsync</metoda>
+    <uloga>Pacijent</uloga>
+    <korisnici>p-1,p-2,p-3</korisnici>
+    <ocekivaniBroj>3</ocekivaniBroj>
+  </scenarij>
+  <scenarij>
+    <metoda>GetMedicinskeSestreAsync</metoda>
+    <uloga>MedicinskaSestra</uloga>
+    <korisnici>s-1</korisnici>
+    <ocekivaniBroj>1</ocekivaniBroj>
+  </scenarij>
+</scenariji>

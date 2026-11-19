@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<scenariji>
+  <scenarij>
+    <ulogaDoktora>Doktor</ulogaDoktora>
+    <doktori>Kardiologija,Pedijatrija,Kardiologija</doktori>
+    <trazena>Kardiologija</trazena>
+    <ocekivaniBroj>2</ocekivaniBroj>
+  </scenarij>
+  <scenarij>
+    <ulogaDoktora>Doktor</ulogaDoktora>
+    <doktori>OpcaMedicina,Dermatologija</doktori>
+    <trazena>Pedijatrija</trazena>
+    <ocekivaniBroj>0</ocekivaniBroj>
+  </scenarij>
+  <scenarij>
+    <ulogaDoktora>Doktor</ulogaDoktora>
+    <doktori>Dermatologija</doktori>
+    <trazena>Dermatologija</trazena>
+    <ocekivaniBroj>1</ocekivaniBroj>
+  </scenarij>
+</scenariji>
