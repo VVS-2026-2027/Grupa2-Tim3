@@ -13,83 +13,109 @@ using Moq;
 
 namespace HealthZone.Tests;
 
-[TestClass]
-public class KorisnikControllerTests
+// ─── Redovi iz CSV/XML-a za Edit testove (čitaju se po id-u) ────────────
+
+public sealed class AdminEditRed
 {
-    private Mock<IKorisnikService> _korisnikServis = null!;
-    private Mock<ITerminService> _terminServis = null!;
-    private Mock<UserManager<Korisnik>> _userManager = null!;
-    private Mock<RoleManager<IdentityRole>> _roleManager = null!;
-    private ApplicationDbContext _context = null!;
-    private KorisnikController _controller = null!;
-    private string _imeBaze = null!;
-    private List<string> _uloge = null!;
+    public string Id { get; init; } = null!;
+    public string UlogaPrijavljenog { get; init; } = null!;
+    public Korisnik Forma { get; init; } = null!;
+    public string? BrojKartona { get; init; }
+    public string Uloga { get; init; } = null!;
+    public string? NovaLozinka { get; init; }
+    public string Token { get; init; } = null!;
+    public string? SecurityStamp { get; init; }
+    public string OcekivaniPrefiksKartona { get; init; } = null!;
+}
 
-    [TestInitialize]
-    public void Setup()
-    {
-        // Svaki test dobija svoju InMemory bazu, a uloge u njoj se pune iz XML-a.
-        _imeBaze = Guid.NewGuid().ToString();
-        _uloge = XmlLoader.Ucitaj("KorisnikController_uloge.xml", "uloga").Select(x => (string)x).ToList();
-        using (var seed = NovaBaza())
-        {
-            seed.Roles.AddRange(_uloge.Select(u => new IdentityRole(u)));
-            seed.SaveChanges();
-        }
-        _context = NovaBaza();
+public sealed class KorisnikEditRed
+{
+    public string Id { get; init; } = null!;
+    public string UlogaPrijavljenog { get; init; } = null!;
+    public string SecurityStamp { get; init; } = null!;
+    public string StaroIme { get; init; } = null!;
+    public string StaroPrezime { get; init; } = null!;
+    public Korisnik Forma { get; init; } = null!;
+    public string? NovaLozinka { get; init; }
+    public string? Potvrda { get; init; }
+    public string Token { get; init; } = null!;
+}
 
-        _korisnikServis = new Mock<IKorisnikService>();
-        _terminServis = new Mock<ITerminService>();
-        _userManager = new Mock<UserManager<Korisnik>>(Mock.Of<IUserStore<Korisnik>>(),
-            null!, null!, null!, null!, null!, null!, null!, null!);
-        _roleManager = new Mock<RoleManager<IdentityRole>>(Mock.Of<IRoleStore<IdentityRole>>(),
-            null!, null!, null!, null!);
-        _roleManager.Setup(r => r.Roles).Returns(_context.Roles);
+public sealed class GreskaAzuriranjaRed
+{
+    public string Id { get; init; } = null!;
+    public string UlogaPrijavljenog { get; init; } = null!;
+    public string Uloga { get; init; } = null!;
+    public string SecurityStamp { get; init; } = null!;
+    public string[] Greske { get; init; } = null!;
+    public string OcekivanaPoruka { get; init; } = null!;
+    public string TrenutnaUloga { get; init; } = null!;
+    public string OcekivanaUlogaUViewBagu { get; init; } = null!;
+}
 
-        _controller = new KorisnikController(_korisnikServis.Object, _terminServis.Object,
-            _roleManager.Object, _userManager.Object, _context)
-        {
-            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
-        };
-    }
+// ─── Izvori podataka i pomoćne metode za KorisnikControllerTests ────────
+public static class KorisnikControllerPodaci
+{
+    // ── pomoćne metode ──
 
-    [TestCleanup]
-    public void Cleanup() => _context.Dispose();
+    public static string? Prazno(string? s) => string.IsNullOrEmpty(s) ? null : s;
 
-    // ─── POMOĆNE METODE ───────────────────────────────────────────────────
-
-    private ApplicationDbContext NovaBaza() => new(
-        new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(_imeBaze).Options);
-
-    // Prijavljuje korisnika s ulogom: User dobija claimove, a UserManager.GetUserAsync vraća tog korisnika.
-    private void Prijavi(string korisnikId, string uloga)
-    {
-        _controller.ControllerContext.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity(
-            new[] { new Claim(ClaimTypes.NameIdentifier, korisnikId), new Claim(ClaimTypes.Role, uloga) }, "Test"));
-        _userManager.Setup(u => u.GetUserAsync(It.IsAny<ClaimsPrincipal>()))
-                    .ReturnsAsync(new Korisnik { Id = korisnikId });
-    }
-
-    private static string? Prazno(string s) => string.IsNullOrEmpty(s) ? null : s;
-
-    private static T? EnumIliNull<T>(string s) where T : struct, Enum
+    public static T? EnumIliNull<T>(string? s) where T : struct, Enum
         => string.IsNullOrEmpty(s) ? null : Enum.Parse<T>(s);
 
-    private static IdentityResult Neuspjeh(string[] greske)
+    public static IdentityResult Neuspjeh(string[] greske)
         => IdentityResult.Failed(greske.Select(g => new IdentityError { Description = g }).ToArray());
 
-    private static string[] Greske(XElement x)
+    public static string[] Greske(XElement x)
         => x.Element("greske")!.Elements("greska").Select(g => (string)g).ToArray();
 
-    private string PrvaGreska() => _controller.ModelState[string.Empty]!.Errors[0].ErrorMessage;
+    public static Mock<UserManager<Korisnik>> NapraviUserManager()
+        => new(Mock.Of<IUserStore<Korisnik>>(), null!, null!, null!, null!, null!, null!, null!, null!);
 
-    private static XElement Scenarij(string fajl, string naziv)
+    public static Mock<RoleManager<IdentityRole>> NapraviRoleManager()
+        => new(Mock.Of<IRoleStore<IdentityRole>>(), null!, null!, null!, null!);
+
+    public static ApplicationDbContext NovaBaza(string imeBaze) => new(
+        new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(imeBaze).Options);
+
+    public static void NapuniUloge(string imeBaze, IEnumerable<string> uloge)
+    {
+        using var baza = NovaBaza(imeBaze);
+        baza.Roles.AddRange(uloge.Select(u => new IdentityRole(u)));
+        baza.SaveChanges();
+    }
+
+    // Prijavljuje korisnika s ulogom: User dobija claimove, a UserManager.GetUserAsync vraća tog korisnika.
+    public static void Prijavi(Controller kontroler, Mock<UserManager<Korisnik>> userManager, string korisnikId,
+        string uloga)
+    {
+        kontroler.ControllerContext.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity(
+            new[] { new Claim(ClaimTypes.NameIdentifier, korisnikId), new Claim(ClaimTypes.Role, uloga) }, "Test"));
+        userManager.Setup(u => u.GetUserAsync(It.IsAny<ClaimsPrincipal>()))
+                   .ReturnsAsync(new Korisnik { Id = korisnikId });
+    }
+
+    public static string PrvaGreska(Controller kontroler)
+        => kontroler.ModelState[string.Empty]!.Errors[0].ErrorMessage;
+
+    // Svi UserManager pozivi koje uspješan Edit (POST) koristi.
+    public static void PodesiUspjesanEdit(Mock<UserManager<Korisnik>> userManager, Korisnik postojeci, string token)
+    {
+        userManager.Setup(u => u.FindByIdAsync(postojeci.Id)).ReturnsAsync(postojeci);
+        userManager.Setup(u => u.UpdateSecurityStampAsync(postojeci)).ReturnsAsync(IdentityResult.Success);
+        userManager.Setup(u => u.UpdateAsync(postojeci)).ReturnsAsync(IdentityResult.Success);
+        userManager.Setup(u => u.GeneratePasswordResetTokenAsync(postojeci)).ReturnsAsync(token);
+        userManager.Setup(u => u.ResetPasswordAsync(postojeci, It.IsAny<string>(), It.IsAny<string>()))
+                   .ReturnsAsync(IdentityResult.Success);
+    }
+
+    public static XElement Scenarij(string fajl, string naziv)
         => XmlLoader.Ucitaj(fajl, "scenarij").Single(s => (string)s.Attribute("naziv")! == naziv);
 
     // Puni InMemory bazu termina, nalaza, notifikacija, lista čekanja i recenzija iz XML scenarija.
-    private void NapuniBazu(XElement s)
+    public static void NapuniBazu(string imeBaze, XElement s)
     {
-        using var baza = NovaBaza();
+        using var baza = NovaBaza(imeBaze);
         baza.Termin.AddRange(s.Descendants("termin").Select(t => new Termin
         {
             TerminId = (int)t.Attribute("id")!,
@@ -131,7 +157,89 @@ public class KorisnikControllerTests
         baza.SaveChanges();
     }
 
-    // ─── IZVORI PODATAKA (CSV) ────────────────────────────────────────────
+    // Napuni bazu iz scenarija brisanja i podesi UserManager da korisnik postoji i da se uspješno briše.
+    public static (string Id, Korisnik Korisnik, XElement Ocekivano) PripremiBrisanje(string imeBaze,
+        Mock<UserManager<Korisnik>> userManager, string naziv)
+    {
+        var scenarij = Scenarij("KorisnikController_brisanje.xml", naziv);
+        NapuniBazu(imeBaze, scenarij);
+        var id = (string)scenarij.Element("korisnikId")!;
+        var korisnik = new Korisnik { Id = id };
+        userManager.Setup(u => u.FindByIdAsync(id)).ReturnsAsync(korisnik);
+        userManager.Setup(u => u.DeleteAsync(korisnik)).ReturnsAsync(IdentityResult.Success);
+        return (id, korisnik, scenarij.Element("ocekivano")!);
+    }
+
+    // ── redovi po id-u ──
+
+    private static IEnumerable<string[]> AdminEditCsv() => CsvLoader.Ucitaj("KorisnikController_adminEdit.csv");
+
+    public static AdminEditRed AdminEdit(string id)
+    {
+        var r = AdminEditCsv().Single(red => red[0] == id);
+        return new AdminEditRed
+        {
+            Id = r[0],
+            UlogaPrijavljenog = r[1],
+            Forma = new Korisnik
+            {
+                Id = r[0],
+                Ime = r[2],
+                Prezime = r[3],
+                Email = r[4],
+                PhoneNumber = Prazno(r[5]),
+                Specijalizacija = EnumIliNull<Specijalizacija>(r[6]),
+                Prioritet = EnumIliNull<Prioritet>(r[7]),
+                BrojKartona = Prazno(r[8])
+            },
+            BrojKartona = Prazno(r[8]),
+            Uloga = r[9],
+            NovaLozinka = Prazno(r[10]),
+            Token = r[11],
+            SecurityStamp = Prazno(r[12]),
+            OcekivaniPrefiksKartona = r[13]
+        };
+    }
+
+    private static IEnumerable<string[]> KorisnikEditCsv() => CsvLoader.Ucitaj("KorisnikController_korisnikEdit.csv");
+
+    public static KorisnikEditRed KorisnikEdit(string id)
+    {
+        var r = KorisnikEditCsv().Single(red => red[0] == id);
+        return new KorisnikEditRed
+        {
+            Id = r[0],
+            UlogaPrijavljenog = r[1],
+            SecurityStamp = r[2],
+            StaroIme = r[3],
+            StaroPrezime = r[4],
+            Forma = new Korisnik { Id = r[0], Ime = r[5], Prezime = r[6], Email = r[7], PhoneNumber = r[8] },
+            NovaLozinka = Prazno(r[9]),
+            Potvrda = Prazno(r[10]),
+            Token = r[11]
+        };
+    }
+
+    private static IEnumerable<XElement> GreskeAzuriranjaXml()
+        => XmlLoader.Ucitaj("KorisnikController_greskaAzuriranja.xml", "scenarij");
+
+    public static GreskaAzuriranjaRed GreskaAzuriranja(string id)
+    {
+        var x = GreskeAzuriranjaXml().Single(s => (string)s.Element("id")! == id);
+        return new GreskaAzuriranjaRed
+        {
+            Id = (string)x.Element("id")!,
+            UlogaPrijavljenog = (string)x.Element("ulogaPrijavljenog")!,
+            Uloga = (string)x.Element("uloga")!,
+            SecurityStamp = (string)x.Element("securityStamp")!,
+            Greske = Greske(x),
+            OcekivanaPoruka = (string)x.Element("ocekivanaPoruka")!,
+            TrenutnaUloga = (string)x.Element("trenutnaUloga")!,
+            OcekivanaUlogaUViewBagu = (string)x.Element("ocekivanaUlogaUViewBagu")!
+        };
+    }
+
+    // ── izvori podataka (CSV) ──
 
     public static IEnumerable<object[]> NepostojeciId() =>
         CsvLoader.Ucitaj("KorisnikController_nepostojeciId.csv").Select(r => new object[] { r[0], r[1] });
@@ -148,16 +256,13 @@ public class KorisnikControllerTests
                  .Select(r => new object[] { r[0], r[1], r[2], r[3], r[4], r[5] });
 
     public static IEnumerable<object[]> GreskeKreiranja() =>
-        CsvLoader.Ucitaj("KorisnikController_greskaKreiranja.csv")
-                 .Select(r => new object[] { r[0], r[1], r[2], r[3] });
+        CsvLoader.Ucitaj("KorisnikController_greskaKreiranja.csv").Select(r => new object[] { r[0], r[1], r[2], r[3] });
 
     public static IEnumerable<object[]> TudjiProfil() =>
-        CsvLoader.Ucitaj("KorisnikController_tudjiProfil.csv")
-                 .Select(r => new object[] { r[0], r[1], r[2], r[3] });
+        CsvLoader.Ucitaj("KorisnikController_tudjiProfil.csv").Select(r => new object[] { r[0], r[1], r[2], r[3] });
 
     public static IEnumerable<object[]> DozvoljenEdit() =>
-        CsvLoader.Ucitaj("KorisnikController_dozvoljenEdit.csv")
-                 .Select(r => new object[] { r[0], r[1], r[2], r[3] });
+        CsvLoader.Ucitaj("KorisnikController_dozvoljenEdit.csv").Select(r => new object[] { r[0], r[1], r[2], r[3] });
 
     public static IEnumerable<object[]> RazlicitId() =>
         CsvLoader.Ucitaj("KorisnikController_razlicitId.csv").Select(r => new object[] { r[0], r[1], r[2] });
@@ -165,18 +270,35 @@ public class KorisnikControllerTests
     public static IEnumerable<object[]> EditNepostojeci() =>
         CsvLoader.Ucitaj("KorisnikController_editNepostojeci.csv").Select(r => new object[] { r[0], r[1], r[2] });
 
-    public static IEnumerable<object[]> AdminEdit() =>
-        CsvLoader.Ucitaj("KorisnikController_adminEdit.csv").Select(r => new object[]
-        {
-            r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8], r[9], r[10], r[11], r[12], r[13],
-            bool.Parse(r[14]), bool.Parse(r[15]), bool.Parse(r[16])
-        });
+    // adminEdit.csv: [8]=brojKartona, [9]=uloga, [10]=novaLozinka, [12]=securityStamp, [13]=prefiks kartona
+    public static IEnumerable<object[]> AdminEditSvi() =>
+        AdminEditCsv().Select(r => new object[] { r[0] });
+    public static IEnumerable<object[]> AdminEditPacijentBezKartona() =>
+        AdminEditCsv().Where(r => r[8] == string.Empty && r[13] != string.Empty).Select(r => new object[] { r[0] });
+    public static IEnumerable<object[]> AdminEditSaKartonom() =>
+        AdminEditCsv().Where(r => r[8] != string.Empty).Select(r => new object[] { r[0] });
+    public static IEnumerable<object[]> AdminEditOsobljeBezKartona() =>
+        AdminEditCsv().Where(r => r[8] == string.Empty && r[13] == string.Empty).Select(r => new object[] { r[0] });
+    public static IEnumerable<object[]> AdminEditSaUlogom() =>
+        AdminEditCsv().Where(r => r[9] != string.Empty).Select(r => new object[] { r[0] });
+    public static IEnumerable<object[]> AdminEditBezUloge() =>
+        AdminEditCsv().Where(r => r[9] == string.Empty).Select(r => new object[] { r[0] });
+    public static IEnumerable<object[]> AdminEditSaLozinkom() =>
+        AdminEditCsv().Where(r => r[10] != string.Empty).Select(r => new object[] { r[0] });
+    public static IEnumerable<object[]> AdminEditBezLozinke() =>
+        AdminEditCsv().Where(r => r[10] == string.Empty).Select(r => new object[] { r[0] });
+    public static IEnumerable<object[]> AdminEditBezStampa() =>
+        AdminEditCsv().Where(r => r[12] == string.Empty).Select(r => new object[] { r[0] });
+    public static IEnumerable<object[]> AdminEditSaStampom() =>
+        AdminEditCsv().Where(r => r[12] != string.Empty).Select(r => new object[] { r[0] });
 
-    public static IEnumerable<object[]> KorisnikEdit() =>
-        CsvLoader.Ucitaj("KorisnikController_korisnikEdit.csv").Select(r => new object[]
-        {
-            r[0], r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8], r[9], r[10], r[11], bool.Parse(r[12])
-        });
+    // korisnikEdit.csv: [9]=novaLozinka
+    public static IEnumerable<object[]> KorisnikEditSvi() =>
+        KorisnikEditCsv().Select(r => new object[] { r[0] });
+    public static IEnumerable<object[]> KorisnikEditSaLozinkom() =>
+        KorisnikEditCsv().Where(r => r[9] != string.Empty).Select(r => new object[] { r[0] });
+    public static IEnumerable<object[]> KorisnikEditBezLozinke() =>
+        KorisnikEditCsv().Where(r => r[9] == string.Empty).Select(r => new object[] { r[0] });
 
     public static IEnumerable<object[]> RazliciteLozinke() =>
         CsvLoader.Ucitaj("KorisnikController_lozinkeRazlicite.csv")
@@ -186,32 +308,37 @@ public class KorisnikControllerTests
         CsvLoader.Ucitaj("KorisnikController_brisanjeNepostojeci.csv").Select(r => new object[] { r[0] });
 
     public static IEnumerable<object[]> UnutrasnjaGreska() =>
-        CsvLoader.Ucitaj("KorisnikController_unutrasnjaGreska.csv")
-                 .Select(r => new object[] { r[0], r[1], r[2], r[3] });
+        CsvLoader.Ucitaj("KorisnikController_unutrasnjaGreska.csv").Select(r => new object[] { r[0], r[1], r[2], r[3] });
 
-    // ─── IZVORI PODATAKA (XML) ────────────────────────────────────────────
+    // ── izvori podataka (XML) ──
 
-    public static IEnumerable<object[]> IndexKorisnici() =>
+    public static IEnumerable<object[]> IndexScenariji() =>
         XmlLoader.Ucitaj("KorisnikController_index.xml", "scenarij").Select(x => new object[]
         {
-            x.Elements("korisnik").Select(k => (string)k.Attribute("id")!).ToArray(),
-            x.Elements("korisnik").Select(k => (string)k.Attribute("uloga")!).ToArray(),
-            x.Elements("korisnik").Select(k => (string)k.Attribute("ocekivano")!).ToArray()
+            x.Elements("korisnik").Select(k => (string)k.Attribute("id")!).ToArray()
         });
 
-    public static IEnumerable<object[]> GreskeAzuriranja() =>
-        XmlLoader.Ucitaj("KorisnikController_greskaAzuriranja.xml", "scenarij").Select(x => new object[]
+    // Svaki korisnik iz index.xml kao poseban red: id, uloga koju servis vraća, očekivani tekst u mapi.
+    public static IEnumerable<object[]> IndexKorisnici() =>
+        XmlLoader.Ucitaj("KorisnikController_index.xml", "korisnik").Select(k => new object[]
         {
-            (string)x.Element("id")!,
-            (string)x.Element("ulogaPrijavljenog")!,
-            (string)x.Element("uloga")!,
-            (string)x.Element("securityStamp")!,
-            Greske(x),
-            (string)x.Element("ocekivanaPoruka")!,
-            (bool)x.Element("svjeziPostoji")!,
-            (string)x.Element("trenutnaUloga")!,
-            (string)x.Element("ocekivanaUlogaUViewBagu")!
+            (string)k.Attribute("id")!,
+            (string)k.Attribute("uloga")!,
+            (string)k.Attribute("ocekivano")!
         });
+
+    public static IEnumerable<object[]> SortiraneUloge() =>
+        XmlLoader.Ucitaj("KorisnikController_uloge.xml", "sortirano")
+                 .Select(x => new object[] { ((string)x).Split(',') });
+
+    public static IEnumerable<object[]> GreskeAzuriranjaSvi() =>
+        GreskeAzuriranjaXml().Select(x => new object[] { (string)x.Element("id")! });
+    public static IEnumerable<object[]> GreskeAzuriranjaKorisnikPostoji() =>
+        GreskeAzuriranjaXml().Where(x => (bool)x.Element("svjeziPostoji")!)
+                             .Select(x => new object[] { (string)x.Element("id")! });
+    public static IEnumerable<object[]> GreskeAzuriranjaKorisnikObrisan() =>
+        GreskeAzuriranjaXml().Where(x => !(bool)x.Element("svjeziPostoji")!)
+                             .Select(x => new object[] { (string)x.Element("id")! });
 
     public static IEnumerable<object[]> GreskeLozinke() =>
         XmlLoader.Ucitaj("KorisnikController_greskaLozinke.xml", "scenarij").Select(x => new object[]
@@ -248,28 +375,69 @@ public class KorisnikControllerTests
             (int)x.Element("ocekivaniBroj")!,
             (string)x.Element("ocekivanaPoruka")!
         });
+}
+
+// ─── Testovi ────────────────────────────────────────────────────────────
+[TestClass]
+public class KorisnikControllerTests
+{
+    private static List<string> _uloge = null!;   // samo za čitanje
+
+    private Mock<IKorisnikService> _korisnikServis = null!;
+    private Mock<ITerminService> _terminServis = null!;   // Dummy: kontroler ga prima, ali ga ne koristi
+    private Mock<UserManager<Korisnik>> _userManager = null!;
+    private Mock<RoleManager<IdentityRole>> _roleManager = null!;
+    private ApplicationDbContext _context = null!;
+    private KorisnikController _controller = null!;
+    private string _imeBaze = null!;
+
+    [ClassInitialize]
+    public static void ClassInit(TestContext context)
+    {
+        // Uloge se čitaju jednom; svaki test ih upisuje u svoju InMemory bazu.
+        _uloge = XmlLoader.Ucitaj("KorisnikController_uloge.xml", "uloga").Select(x => (string)x).ToList();
+    }
+
+    [TestInitialize]
+    public void Setup()
+    {
+        _imeBaze = Guid.NewGuid().ToString();
+        KorisnikControllerPodaci.NapuniUloge(_imeBaze, _uloge);
+        _context = KorisnikControllerPodaci.NovaBaza(_imeBaze);
+
+        _korisnikServis = new Mock<IKorisnikService>();
+        _terminServis = new Mock<ITerminService>();
+        _userManager = KorisnikControllerPodaci.NapraviUserManager();
+        _roleManager = KorisnikControllerPodaci.NapraviRoleManager();
+        _roleManager.Setup(r => r.Roles).Returns(_context.Roles);
+
+        _controller = new KorisnikController(_korisnikServis.Object, _terminServis.Object,
+            _roleManager.Object, _userManager.Object, _context)
+        {
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
+        };
+    }
+
+    [TestCleanup]
+    public void Cleanup()
+    {
+        _controller.Dispose();
+        _context.Dispose();
+    }
 
     // ─── INDEX ────────────────────────────────────────────────────────────
 
     [TestMethod]
-    [DynamicData(nameof(IndexKorisnici), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Mock"), TestCategory("InMemory")]
+    [DynamicData(nameof(KorisnikControllerPodaci.IndexScenariji), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Fake")]
     [TestProperty("Autor", "Ahmed Spahic")]
     [Priority(1)]
-    public async Task Index_PostojeKorisnici_VracaViewSaMapomUlogaISortiranimUlogama(string[] ids, string[] uloge,
-        string[] ocekivaneUloge)
+    public async Task Index_PostojeKorisnici_VracaSveKorisnike(string[] ids)
     {
         // Arrange
         var korisnici = ids.Select(id => new Korisnik { Id = id }).ToList();
         _korisnikServis.Setup(s => s.GetAllAsync()).ReturnsAsync(korisnici);
-        for (int i = 0; i < korisnici.Count; i++)
-        {
-            var korisnik = korisnici[i];
-            var uloga = Prazno(uloge[i]);
-            _korisnikServis.Setup(s => s.GetUlogaAsync(korisnik)).ReturnsAsync(uloga!);
-        }
-        var sortirano = ((string)XmlLoader.Ucitaj("KorisnikController_uloge.xml", "sortirano").Single())
-            .Split(',');
+        _korisnikServis.Setup(s => s.GetUlogaAsync(It.IsAny<Korisnik>())).ReturnsAsync(string.Empty);
 
         // Act
         var rezultat = await _controller.Index() as ViewResult;
@@ -277,17 +445,48 @@ public class KorisnikControllerTests
         // Assert
         Assert.IsNotNull(rezultat);
         Assert.AreSame(korisnici, rezultat.Model);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.IndexKorisnici), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Fake")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task Index_ZaSvakogKorisnika_MapaSadrziOcekivanuUlogu(string id, string uloga, string ocekivano)
+    {
+        // Arrange
+        var korisnik = new Korisnik { Id = id };
+        _korisnikServis.Setup(s => s.GetAllAsync()).ReturnsAsync(new List<Korisnik> { korisnik });
+        _korisnikServis.Setup(s => s.GetUlogaAsync(korisnik)).ReturnsAsync(KorisnikControllerPodaci.Prazno(uloga)!);
+
+        // Act
+        await _controller.Index();
+
+        // Assert
         var mapa = (Dictionary<string, string>)_controller.ViewData["UlogeMap"]!;
-        for (int i = 0; i < ids.Length; i++)
-            Assert.AreEqual(ocekivaneUloge[i], mapa[ids[i]]);
+        Assert.AreEqual(ocekivano, mapa[id]);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.SortiraneUloge), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Fake")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task Index_UlogeUBazi_SortiraAbecedno(string[] sortirano)
+    {
+        // Arrange
+        _korisnikServis.Setup(s => s.GetAllAsync()).ReturnsAsync(new List<Korisnik>());
+
+        // Act
+        await _controller.Index();
+
+        // Assert
         CollectionAssert.AreEqual(sortirano, (System.Collections.ICollection)_controller.ViewData["SveUloge"]!);
     }
 
     // ─── DETAILS ──────────────────────────────────────────────────────────
 
     [TestMethod]
-    [DynamicData(nameof(NepostojeciId), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [DynamicData(nameof(KorisnikControllerPodaci.NepostojeciId), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
     [TestProperty("Autor", "Ahmed Spahic")]
     public async Task Details_IdPrazanIliNepostojeci_VracaNotFound(string id, string opis)
     {
@@ -295,17 +494,17 @@ public class KorisnikControllerTests
         _korisnikServis.Setup(s => s.GetByIdAsync(It.IsAny<string>())).ReturnsAsync((Korisnik?)null);
 
         // Act
-        var rezultat = await _controller.Details(Prazno(id));
+        var rezultat = await _controller.Details(KorisnikControllerPodaci.Prazno(id));
 
         // Assert
         Assert.IsInstanceOfType(rezultat, typeof(NotFoundResult), opis);
     }
 
     [TestMethod]
-    [DynamicData(nameof(PostojeciKorisnici), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [DynamicData(nameof(KorisnikControllerPodaci.PostojeciKorisnici), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
     [TestProperty("Autor", "Ahmed Spahic")]
-    public async Task Details_KorisnikPostoji_VracaViewSaUlogom(string id, string ime, string prezime, string uloga)
+    public async Task Details_KorisnikPostoji_VracaViewSKorisnikom(string id, string ime, string prezime, string uloga)
     {
         // Arrange
         var korisnik = new Korisnik { Id = id, Ime = ime, Prezime = prezime };
@@ -318,32 +517,70 @@ public class KorisnikControllerTests
         // Assert
         Assert.IsNotNull(rezultat);
         Assert.AreSame(korisnik, rezultat.Model);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.PostojeciKorisnici), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task Details_KorisnikPostoji_PrikazujeUlogu(string id, string ime, string prezime, string uloga)
+    {
+        // Arrange
+        var korisnik = new Korisnik { Id = id, Ime = ime, Prezime = prezime };
+        _korisnikServis.Setup(s => s.GetByIdAsync(id)).ReturnsAsync(korisnik);
+        _korisnikServis.Setup(s => s.GetUlogaAsync(korisnik)).ReturnsAsync(uloga);
+
+        // Act
+        await _controller.Details(id);
+
+        // Assert
         Assert.AreEqual(uloga, _controller.ViewData["Uloga"]);
     }
 
     // ─── CREATE ───────────────────────────────────────────────────────────
 
     [TestMethod]
-    [TestCategory("InMemory")]
+    [TestCategory("Stub"), TestCategory("Fake")]
     [TestProperty("Autor", "Ahmed Spahic")]
-    public async Task Create_Get_PopunjavaPadajuceListe()
+    public async Task Create_Get_NudiSvePrioritete()
     {
         // Act
-        var rezultat = await _controller.Create() as ViewResult;
+        await _controller.Create();
 
         // Assert
-        Assert.IsNotNull(rezultat);
         Assert.AreEqual(Enum.GetValues<Prioritet>().Length, ((SelectList)_controller.ViewData["Prioriteti"]!).Count());
+    }
+
+    [TestMethod]
+    [TestCategory("Stub"), TestCategory("Fake")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task Create_Get_NudiSveSpecijalizacije()
+    {
+        // Act
+        await _controller.Create();
+
+        // Assert
         Assert.AreEqual(Enum.GetValues<Specijalizacija>().Length,
             ((SelectList)_controller.ViewData["Specijalizacije"]!).Count());
+    }
+
+    [TestMethod]
+    [TestCategory("Stub"), TestCategory("Fake")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task Create_Get_NudiSveUlogeIzBaze()
+    {
+        // Act
+        await _controller.Create();
+
+        // Assert
         Assert.AreEqual(_uloge.Count, ((SelectList)_controller.ViewData["Uloge"]!).Count());
     }
 
     [TestMethod]
-    [DynamicData(nameof(NevalidanModel), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [DynamicData(nameof(KorisnikControllerPodaci.NevalidanModel), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Fake")]
     [TestProperty("Autor", "Ahmed Spahic")]
-    public async Task Create_Post_NevalidanModel_VracaIstiViewBezSnimanja(string ime, string prezime, string email,
+    public async Task Create_Post_NevalidanModel_VracaIstiView(string ime, string prezime, string email,
         string lozinka, string uloga, string kljucGreske, string porukaGreske)
     {
         // Arrange
@@ -356,17 +593,33 @@ public class KorisnikControllerTests
         // Assert
         Assert.IsNotNull(rezultat);
         Assert.AreSame(korisnik, rezultat.Model);
-        Assert.IsNotNull(_controller.ViewData["Uloge"]);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.NevalidanModel), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock"), TestCategory("Fake")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task Create_Post_NevalidanModel_NeSnimaKorisnika(string ime, string prezime, string email,
+        string lozinka, string uloga, string kljucGreske, string porukaGreske)
+    {
+        // Arrange
+        var korisnik = new Korisnik { Ime = ime, Prezime = prezime, Email = email };
+        _controller.ModelState.AddModelError(kljucGreske, porukaGreske);
+
+        // Act
+        await _controller.Create(korisnik, lozinka, uloga);
+
+        // Assert
         _korisnikServis.Verify(s => s.AddAsync(It.IsAny<Korisnik>(), It.IsAny<string>(), It.IsAny<string>()),
             Times.Never);
     }
 
     [TestMethod]
-    [DynamicData(nameof(NoviKorisnici), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [DynamicData(nameof(KorisnikControllerPodaci.NoviKorisnici), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
     [TestProperty("Autor", "Ahmed Spahic")]
     [Priority(1)]
-    public async Task Create_Post_ValidanKorisnik_PostavljaPrioritetIPreusmjerava(string ime, string prezime,
+    public async Task Create_Post_ValidanKorisnik_PreusmjeravaNaIndex(string ime, string prezime,
         string email, string lozinka, string uloga, string ocekivaniPrioritet)
     {
         // Arrange
@@ -378,13 +631,46 @@ public class KorisnikControllerTests
         // Assert
         Assert.IsNotNull(rezultat);
         Assert.AreEqual(nameof(KorisnikController.Index), rezultat.ActionName);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.NoviKorisnici), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task Create_Post_ValidanKorisnik_PostavljaNizakPrioritet(string ime, string prezime,
+        string email, string lozinka, string uloga, string ocekivaniPrioritet)
+    {
+        // Arrange
+        var korisnik = new Korisnik { Ime = ime, Prezime = prezime, Email = email };
+
+        // Act
+        await _controller.Create(korisnik, lozinka, uloga);
+
+        // Assert
         Assert.AreEqual(Enum.Parse<Prioritet>(ocekivaniPrioritet), korisnik.Prioritet);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.NoviKorisnici), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    [Priority(1)]
+    public async Task Create_Post_ValidanKorisnik_SnimaKrozServis(string ime, string prezime,
+        string email, string lozinka, string uloga, string ocekivaniPrioritet)
+    {
+        // Arrange
+        var korisnik = new Korisnik { Ime = ime, Prezime = prezime, Email = email };
+
+        // Act
+        await _controller.Create(korisnik, lozinka, uloga);
+
+        // Assert
         _korisnikServis.Verify(s => s.AddAsync(korisnik, lozinka, uloga), Times.Once);
     }
 
     [TestMethod]
-    [DynamicData(nameof(GreskeKreiranja), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Izuzetak")]
+    [DynamicData(nameof(KorisnikControllerPodaci.GreskeKreiranja), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Izuzetak")]
     [TestProperty("Autor", "Ahmed Spahic")]
     public async Task Create_Post_ServisBaciGresku_VracaViewSaPorukom(string email, string lozinka, string uloga,
         string poruka)
@@ -394,18 +680,17 @@ public class KorisnikControllerTests
         _korisnikServis.Setup(s => s.AddAsync(korisnik, lozinka, uloga)).ThrowsAsync(new Exception(poruka));
 
         // Act
-        var rezultat = await _controller.Create(korisnik, lozinka, uloga) as ViewResult;
+        await _controller.Create(korisnik, lozinka, uloga);
 
         // Assert
-        Assert.IsNotNull(rezultat);
-        Assert.AreEqual(poruka, PrvaGreska());
+        Assert.AreEqual(poruka, KorisnikControllerPodaci.PrvaGreska(_controller));
     }
 
     // ─── EDIT (GET) ───────────────────────────────────────────────────────
 
     [TestMethod]
-    [DynamicData(nameof(NepostojeciId), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [DynamicData(nameof(KorisnikControllerPodaci.NepostojeciId), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
     [TestProperty("Autor", "Ahmed Spahic")]
     public async Task Edit_Get_IdPrazanIliNepostojeci_VracaNotFound(string id, string opis)
     {
@@ -413,22 +698,22 @@ public class KorisnikControllerTests
         _korisnikServis.Setup(s => s.GetByIdAsync(It.IsAny<string>())).ReturnsAsync((Korisnik?)null);
 
         // Act
-        var rezultat = await _controller.Edit(Prazno(id));
+        var rezultat = await _controller.Edit(KorisnikControllerPodaci.Prazno(id));
 
         // Assert
         Assert.IsInstanceOfType(rezultat, typeof(NotFoundResult), opis);
     }
 
     [TestMethod]
-    [DynamicData(nameof(TudjiProfil), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Autorizacija")]
+    [DynamicData(nameof(KorisnikControllerPodaci.TudjiProfil), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Autorizacija")]
     [TestProperty("Autor", "Ahmed Spahic")]
     [Priority(1)]
     public async Task Edit_Get_TudjiProfilBezAdmina_VracaForbid(string korisnikId, string prijavljeniId,
         string ulogaPrijavljenog, string uloga)
     {
         // Arrange
-        Prijavi(prijavljeniId, ulogaPrijavljenog);
+        KorisnikControllerPodaci.Prijavi(_controller, _userManager, prijavljeniId, ulogaPrijavljenog);
         _korisnikServis.Setup(s => s.GetByIdAsync(korisnikId)).ReturnsAsync(new Korisnik { Id = korisnikId });
 
         // Act
@@ -439,14 +724,14 @@ public class KorisnikControllerTests
     }
 
     [TestMethod]
-    [DynamicData(nameof(DozvoljenEdit), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Autorizacija"), TestCategory("InMemory")]
+    [DynamicData(nameof(KorisnikControllerPodaci.DozvoljenEdit), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Autorizacija"), TestCategory("Fake")]
     [TestProperty("Autor", "Ahmed Spahic")]
-    public async Task Edit_Get_VlastitiProfilIliAdmin_VracaViewSaTrenutnomUlogom(string korisnikId,
+    public async Task Edit_Get_VlastitiProfilIliAdmin_VracaViewSKorisnikom(string korisnikId,
         string prijavljeniId, string ulogaPrijavljenog, string ulogaKorisnika)
     {
         // Arrange
-        Prijavi(prijavljeniId, ulogaPrijavljenog);
+        KorisnikControllerPodaci.Prijavi(_controller, _userManager, prijavljeniId, ulogaPrijavljenog);
         var korisnik = new Korisnik { Id = korisnikId };
         _korisnikServis.Setup(s => s.GetByIdAsync(korisnikId)).ReturnsAsync(korisnik);
         _korisnikServis.Setup(s => s.GetUlogaAsync(korisnik)).ReturnsAsync(ulogaKorisnika);
@@ -457,14 +742,32 @@ public class KorisnikControllerTests
         // Assert
         Assert.IsNotNull(rezultat);
         Assert.AreSame(korisnik, rezultat.Model);
-        Assert.AreEqual(ulogaKorisnika, _controller.ViewData["TrenutnaUloga"]);
-        Assert.IsNotNull(_controller.ViewData["Uloge"]);
     }
 
-    // ─── EDIT (POST) ──────────────────────────────────────────────────────
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.DozvoljenEdit), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Fake")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task Edit_Get_VlastitiProfilIliAdmin_PrikazujeTrenutnuUlogu(string korisnikId,
+        string prijavljeniId, string ulogaPrijavljenog, string ulogaKorisnika)
+    {
+        // Arrange
+        KorisnikControllerPodaci.Prijavi(_controller, _userManager, prijavljeniId, ulogaPrijavljenog);
+        var korisnik = new Korisnik { Id = korisnikId };
+        _korisnikServis.Setup(s => s.GetByIdAsync(korisnikId)).ReturnsAsync(korisnik);
+        _korisnikServis.Setup(s => s.GetUlogaAsync(korisnik)).ReturnsAsync(ulogaKorisnika);
+
+        // Act
+        await _controller.Edit(korisnikId);
+
+        // Assert
+        Assert.AreEqual(ulogaKorisnika, _controller.ViewData["TrenutnaUloga"]);
+    }
+
+    // ─── EDIT (POST): ulaz i autorizacija ─────────────────────────────────
 
     [TestMethod]
-    [DynamicData(nameof(RazlicitId), DynamicDataSourceType.Method)]
+    [DynamicData(nameof(KorisnikControllerPodaci.RazlicitId), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
     [TestCategory("DataDriven")]
     [TestProperty("Autor", "Ahmed Spahic")]
     public async Task Edit_Post_IdRuteRazlicitOdModela_VracaNotFound(string idRute, string idModela, string uloga)
@@ -474,36 +777,34 @@ public class KorisnikControllerTests
 
         // Assert
         Assert.IsInstanceOfType(rezultat, typeof(NotFoundResult));
-        _userManager.Verify(u => u.UpdateAsync(It.IsAny<Korisnik>()), Times.Never);
     }
 
     [TestMethod]
-    [DynamicData(nameof(TudjiProfil), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Autorizacija")]
+    [DynamicData(nameof(KorisnikControllerPodaci.TudjiProfil), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Autorizacija")]
     [TestProperty("Autor", "Ahmed Spahic")]
     [Priority(1)]
     public async Task Edit_Post_TudjiProfilBezAdmina_VracaForbid(string korisnikId, string prijavljeniId,
         string ulogaPrijavljenog, string uloga)
     {
         // Arrange
-        Prijavi(prijavljeniId, ulogaPrijavljenog);
+        KorisnikControllerPodaci.Prijavi(_controller, _userManager, prijavljeniId, ulogaPrijavljenog);
 
         // Act
         var rezultat = await _controller.Edit(korisnikId, new Korisnik { Id = korisnikId }, uloga, null, null);
 
         // Assert
         Assert.IsInstanceOfType(rezultat, typeof(ForbidResult));
-        _userManager.Verify(u => u.UpdateAsync(It.IsAny<Korisnik>()), Times.Never);
     }
 
     [TestMethod]
-    [DynamicData(nameof(EditNepostojeci), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [DynamicData(nameof(KorisnikControllerPodaci.EditNepostojeci), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
     [TestProperty("Autor", "Ahmed Spahic")]
     public async Task Edit_Post_KorisnikNePostoji_VracaNotFound(string id, string ulogaPrijavljenog, string uloga)
     {
         // Arrange
-        Prijavi(id, ulogaPrijavljenog);
+        KorisnikControllerPodaci.Prijavi(_controller, _userManager, id, ulogaPrijavljenog);
         _userManager.Setup(u => u.FindByIdAsync(id)).ReturnsAsync((Korisnik?)null);
 
         // Act
@@ -513,185 +814,568 @@ public class KorisnikControllerTests
         Assert.IsInstanceOfType(rezultat, typeof(NotFoundResult));
     }
 
+    // ─── EDIT (POST): administrator ───────────────────────────────────────
+
     [TestMethod]
-    [DynamicData(nameof(AdminEdit), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [DynamicData(nameof(KorisnikControllerPodaci.AdminEditSvi), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
     [TestProperty("Autor", "Ahmed Spahic")]
     [Priority(1)]
-    public async Task Edit_Post_AdminValidniPodaci_AzuriraSvaPoljaIPreusmjerava(string id, string ulogaPrijavljenog,
-        string ime,
-        string prezime, string email, string telefon, string specijalizacija, string prioritet, string brojKartona,
-        string uloga, string novaLozinka, string token, string securityStamp, string ocekivaniPrefiksKartona,
-        bool mijenjaUlogu, bool resetujeLozinku, bool osvjezavaStamp)
+    public async Task Edit_PostAdmin_ValidniPodaci_PreusmjeravaNaDetalje(string id)
     {
         // Arrange
-        Prijavi(id, ulogaPrijavljenog);
-        var postojeci = new Korisnik { Id = id, SecurityStamp = Prazno(securityStamp) };
-        var forma = new Korisnik
-        {
-            Id = id,
-            Ime = ime,
-            Prezime = prezime,
-            Email = email,
-            PhoneNumber = Prazno(telefon),
-            Specijalizacija = EnumIliNull<Specijalizacija>(specijalizacija),
-            Prioritet = EnumIliNull<Prioritet>(prioritet),
-            BrojKartona = Prazno(brojKartona)
-        };
-        _userManager.Setup(u => u.FindByIdAsync(id)).ReturnsAsync(postojeci);
-        _userManager.Setup(u => u.UpdateSecurityStampAsync(postojeci)).ReturnsAsync(IdentityResult.Success);
-        _userManager.Setup(u => u.UpdateAsync(postojeci)).ReturnsAsync(IdentityResult.Success);
-        _userManager.Setup(u => u.GeneratePasswordResetTokenAsync(postojeci)).ReturnsAsync(token);
-        _userManager.Setup(u => u.ResetPasswordAsync(postojeci, token, novaLozinka))
-                    .ReturnsAsync(IdentityResult.Success);
+        var red = KorisnikControllerPodaci.AdminEdit(id);
+        KorisnikControllerPodaci.Prijavi(_controller, _userManager, red.Id, red.UlogaPrijavljenog);
+        var postojeci = new Korisnik { Id = red.Id, SecurityStamp = red.SecurityStamp };
+        KorisnikControllerPodaci.PodesiUspjesanEdit(_userManager, postojeci, red.Token);
 
         // Act
-        var rezultat = await _controller.Edit(id, forma, uloga, Prazno(novaLozinka), Prazno(novaLozinka))
+        var rezultat = await _controller.Edit(red.Id, red.Forma, red.Uloga, red.NovaLozinka, red.NovaLozinka)
             as RedirectToActionResult;
 
         // Assert
         Assert.IsNotNull(rezultat);
         Assert.AreEqual(nameof(KorisnikController.Details), rezultat.ActionName);
-        Assert.AreEqual(id, rezultat.RouteValues!["id"]);
-        Assert.AreEqual(forma.Ime, postojeci.Ime);
-        Assert.AreEqual(forma.Prezime, postojeci.Prezime);
-        Assert.AreEqual(forma.Email, postojeci.Email);
-        Assert.AreEqual(forma.Email, postojeci.UserName);
-        Assert.AreEqual(forma.PhoneNumber, postojeci.PhoneNumber);
-        Assert.AreEqual(forma.Specijalizacija, postojeci.Specijalizacija);
-        Assert.AreEqual(forma.Prioritet, postojeci.Prioritet);
-        if (string.IsNullOrEmpty(ocekivaniPrefiksKartona))
-            Assert.IsNull(postojeci.BrojKartona);
-        else
-            StringAssert.StartsWith(postojeci.BrojKartona, ocekivaniPrefiksKartona);
-        _korisnikServis.Verify(s => s.PromijeniUloguAsync(id, uloga), mijenjaUlogu ? Times.Once() : Times.Never());
-        _userManager.Verify(u => u.ResetPasswordAsync(postojeci, token, novaLozinka),
-            resetujeLozinku ? Times.Once() : Times.Never());
-        _userManager.Verify(u => u.UpdateSecurityStampAsync(postojeci),
-            osvjezavaStamp ? Times.Once() : Times.Never());
+        Assert.AreEqual(red.Id, rezultat.RouteValues!["id"]);
     }
 
     [TestMethod]
-    [DynamicData(nameof(KorisnikEdit), DynamicDataSourceType.Method)]
+    [DynamicData(nameof(KorisnikControllerPodaci.AdminEditSvi), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task Edit_PostAdmin_ValidniPodaci_KopiraLicnePodatke(string id)
+    {
+        // Arrange
+        var red = KorisnikControllerPodaci.AdminEdit(id);
+        KorisnikControllerPodaci.Prijavi(_controller, _userManager, red.Id, red.UlogaPrijavljenog);
+        var postojeci = new Korisnik { Id = red.Id, SecurityStamp = red.SecurityStamp };
+        KorisnikControllerPodaci.PodesiUspjesanEdit(_userManager, postojeci, red.Token);
+
+        // Act
+        await _controller.Edit(red.Id, red.Forma, red.Uloga, red.NovaLozinka, red.NovaLozinka);
+
+        // Assert
+        Assert.AreEqual(red.Forma.Ime, postojeci.Ime);
+        Assert.AreEqual(red.Forma.Prezime, postojeci.Prezime);
+        Assert.AreEqual(red.Forma.PhoneNumber, postojeci.PhoneNumber);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.AdminEditSvi), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task Edit_PostAdmin_ValidniPodaci_EmailPostajeKorisnickoIme(string id)
+    {
+        // Arrange
+        var red = KorisnikControllerPodaci.AdminEdit(id);
+        KorisnikControllerPodaci.Prijavi(_controller, _userManager, red.Id, red.UlogaPrijavljenog);
+        var postojeci = new Korisnik { Id = red.Id, SecurityStamp = red.SecurityStamp };
+        KorisnikControllerPodaci.PodesiUspjesanEdit(_userManager, postojeci, red.Token);
+
+        // Act
+        await _controller.Edit(red.Id, red.Forma, red.Uloga, red.NovaLozinka, red.NovaLozinka);
+
+        // Assert
+        Assert.AreEqual(red.Forma.Email, postojeci.Email);
+        Assert.AreEqual(red.Forma.Email, postojeci.UserName);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.AdminEditSvi), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task Edit_PostAdmin_ValidniPodaci_KopiraSpecijalizacijuIPrioritet(string id)
+    {
+        // Arrange
+        var red = KorisnikControllerPodaci.AdminEdit(id);
+        KorisnikControllerPodaci.Prijavi(_controller, _userManager, red.Id, red.UlogaPrijavljenog);
+        var postojeci = new Korisnik { Id = red.Id, SecurityStamp = red.SecurityStamp };
+        KorisnikControllerPodaci.PodesiUspjesanEdit(_userManager, postojeci, red.Token);
+
+        // Act
+        await _controller.Edit(red.Id, red.Forma, red.Uloga, red.NovaLozinka, red.NovaLozinka);
+
+        // Assert
+        Assert.AreEqual(red.Forma.Specijalizacija, postojeci.Specijalizacija);
+        Assert.AreEqual(red.Forma.Prioritet, postojeci.Prioritet);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.AdminEditPacijentBezKartona), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task Edit_PostAdmin_PacijentBezKartona_GeneriseKarton(string id)
+    {
+        // Arrange
+        var red = KorisnikControllerPodaci.AdminEdit(id);
+        KorisnikControllerPodaci.Prijavi(_controller, _userManager, red.Id, red.UlogaPrijavljenog);
+        var postojeci = new Korisnik { Id = red.Id, SecurityStamp = red.SecurityStamp };
+        KorisnikControllerPodaci.PodesiUspjesanEdit(_userManager, postojeci, red.Token);
+
+        // Act
+        await _controller.Edit(red.Id, red.Forma, red.Uloga, red.NovaLozinka, red.NovaLozinka);
+
+        // Assert
+        StringAssert.StartsWith(postojeci.BrojKartona, red.OcekivaniPrefiksKartona);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.AdminEditSaKartonom), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task Edit_PostAdmin_PostojeciKarton_KartonOstajeIsti(string id)
+    {
+        // Arrange
+        var red = KorisnikControllerPodaci.AdminEdit(id);
+        KorisnikControllerPodaci.Prijavi(_controller, _userManager, red.Id, red.UlogaPrijavljenog);
+        var postojeci = new Korisnik { Id = red.Id, SecurityStamp = red.SecurityStamp };
+        KorisnikControllerPodaci.PodesiUspjesanEdit(_userManager, postojeci, red.Token);
+
+        // Act
+        await _controller.Edit(red.Id, red.Forma, red.Uloga, red.NovaLozinka, red.NovaLozinka);
+
+        // Assert
+        Assert.AreEqual(red.BrojKartona, postojeci.BrojKartona);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.AdminEditOsobljeBezKartona), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task Edit_PostAdmin_OsobljeBezKartona_KartonOstajePrazan(string id)
+    {
+        // Arrange
+        var red = KorisnikControllerPodaci.AdminEdit(id);
+        KorisnikControllerPodaci.Prijavi(_controller, _userManager, red.Id, red.UlogaPrijavljenog);
+        var postojeci = new Korisnik { Id = red.Id, SecurityStamp = red.SecurityStamp };
+        KorisnikControllerPodaci.PodesiUspjesanEdit(_userManager, postojeci, red.Token);
+
+        // Act
+        await _controller.Edit(red.Id, red.Forma, red.Uloga, red.NovaLozinka, red.NovaLozinka);
+
+        // Assert
+        Assert.IsNull(postojeci.BrojKartona);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.AdminEditSaUlogom), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
     [TestCategory("DataDriven"), TestCategory("Mock")]
     [TestProperty("Autor", "Ahmed Spahic")]
-    public async Task Edit_Post_ObicanKorisnik_MijenjaSamoKontaktILozinku(string id, string ulogaPrijavljenog,
-        string securityStamp, string staroIme, string staroPrezime, string ime, string prezime, string email,
-        string telefon, string novaLozinka, string potvrda, string token, bool resetujeLozinku)
+    [Priority(1)]
+    public async Task Edit_PostAdmin_ZadanaUloga_MijenjaUlogu(string id)
     {
         // Arrange
-        Prijavi(id, ulogaPrijavljenog);
-        var postojeci = new Korisnik { Id = id, Ime = staroIme, Prezime = staroPrezime, SecurityStamp = securityStamp };
-        var forma = new Korisnik { Id = id, Ime = ime, Prezime = prezime, Email = email, PhoneNumber = telefon };
-        _userManager.Setup(u => u.FindByIdAsync(id)).ReturnsAsync(postojeci);
-        _userManager.Setup(u => u.UpdateAsync(postojeci)).ReturnsAsync(IdentityResult.Success);
-        _userManager.Setup(u => u.GeneratePasswordResetTokenAsync(postojeci)).ReturnsAsync(token);
-        _userManager.Setup(u => u.ResetPasswordAsync(postojeci, token, novaLozinka))
-                    .ReturnsAsync(IdentityResult.Success);
+        var red = KorisnikControllerPodaci.AdminEdit(id);
+        KorisnikControllerPodaci.Prijavi(_controller, _userManager, red.Id, red.UlogaPrijavljenog);
+        var postojeci = new Korisnik { Id = red.Id, SecurityStamp = red.SecurityStamp };
+        KorisnikControllerPodaci.PodesiUspjesanEdit(_userManager, postojeci, red.Token);
 
         // Act
-        var rezultat = await _controller.Edit(id, forma, ulogaPrijavljenog, Prazno(novaLozinka), Prazno(potvrda))
-            as RedirectToActionResult;
+        await _controller.Edit(red.Id, red.Forma, red.Uloga, red.NovaLozinka, red.NovaLozinka);
 
         // Assert
-        Assert.IsNotNull(rezultat);
-        Assert.AreEqual(staroIme, postojeci.Ime);
-        Assert.AreEqual(staroPrezime, postojeci.Prezime);
-        Assert.AreEqual(email, postojeci.Email);
-        Assert.AreEqual(email, postojeci.UserName);
-        Assert.AreEqual(telefon, postojeci.PhoneNumber);
-        _korisnikServis.Verify(s => s.PromijeniUloguAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
-        _userManager.Verify(u => u.ResetPasswordAsync(postojeci, token, novaLozinka),
-            resetujeLozinku ? Times.Once() : Times.Never());
+        _korisnikServis.Verify(s => s.PromijeniUloguAsync(red.Id, red.Uloga), Times.Once);
     }
 
     [TestMethod]
-    [DynamicData(nameof(RazliciteLozinke), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Izuzetak")]
+    [DynamicData(nameof(KorisnikControllerPodaci.AdminEditBezUloge), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
     [TestProperty("Autor", "Ahmed Spahic")]
-    public async Task Edit_Post_LozinkeSeNePodudaraju_VracaViewSaGreskom(string id, string ulogaPrijavljenog,
-        string securityStamp, string email, string novaLozinka, string potvrda, string ocekivanaPoruka,
-        string trenutnaUloga)
+    public async Task Edit_PostAdmin_PraznaUloga_NeMijenjaUlogu(string id)
     {
         // Arrange
-        Prijavi(id, ulogaPrijavljenog);
-        var postojeci = new Korisnik { Id = id, SecurityStamp = securityStamp };
-        var forma = new Korisnik { Id = id, Email = email };
-        _userManager.Setup(u => u.FindByIdAsync(id)).ReturnsAsync(postojeci);
-        _userManager.Setup(u => u.UpdateAsync(postojeci)).ReturnsAsync(IdentityResult.Success);
-        _korisnikServis.Setup(s => s.GetUlogaAsync(postojeci)).ReturnsAsync(trenutnaUloga);
+        var red = KorisnikControllerPodaci.AdminEdit(id);
+        KorisnikControllerPodaci.Prijavi(_controller, _userManager, red.Id, red.UlogaPrijavljenog);
+        var postojeci = new Korisnik { Id = red.Id, SecurityStamp = red.SecurityStamp };
+        KorisnikControllerPodaci.PodesiUspjesanEdit(_userManager, postojeci, red.Token);
 
         // Act
-        var rezultat = await _controller.Edit(id, forma, trenutnaUloga, novaLozinka, potvrda) as ViewResult;
+        await _controller.Edit(red.Id, red.Forma, red.Uloga, red.NovaLozinka, red.NovaLozinka);
 
         // Assert
-        Assert.IsNotNull(rezultat);
-        Assert.AreSame(forma, rezultat.Model);
-        Assert.AreEqual(ocekivanaPoruka, PrvaGreska());
-        Assert.AreEqual(trenutnaUloga, _controller.ViewData["TrenutnaUloga"]);
+        _korisnikServis.Verify(s => s.PromijeniUloguAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.AdminEditSaLozinkom), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task Edit_PostAdmin_NovaLozinka_ResetujeLozinku(string id)
+    {
+        // Arrange
+        var red = KorisnikControllerPodaci.AdminEdit(id);
+        KorisnikControllerPodaci.Prijavi(_controller, _userManager, red.Id, red.UlogaPrijavljenog);
+        var postojeci = new Korisnik { Id = red.Id, SecurityStamp = red.SecurityStamp };
+        KorisnikControllerPodaci.PodesiUspjesanEdit(_userManager, postojeci, red.Token);
+
+        // Act
+        await _controller.Edit(red.Id, red.Forma, red.Uloga, red.NovaLozinka, red.NovaLozinka);
+
+        // Assert
+        _userManager.Verify(u => u.ResetPasswordAsync(postojeci, red.Token, red.NovaLozinka!), Times.Once);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.AdminEditBezLozinke), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task Edit_PostAdmin_BezNoveLozinke_NeResetujeLozinku(string id)
+    {
+        // Arrange
+        var red = KorisnikControllerPodaci.AdminEdit(id);
+        KorisnikControllerPodaci.Prijavi(_controller, _userManager, red.Id, red.UlogaPrijavljenog);
+        var postojeci = new Korisnik { Id = red.Id, SecurityStamp = red.SecurityStamp };
+        KorisnikControllerPodaci.PodesiUspjesanEdit(_userManager, postojeci, red.Token);
+
+        // Act
+        await _controller.Edit(red.Id, red.Forma, red.Uloga, red.NovaLozinka, red.NovaLozinka);
+
+        // Assert
         _userManager.Verify(u => u.ResetPasswordAsync(It.IsAny<Korisnik>(), It.IsAny<string>(), It.IsAny<string>()),
             Times.Never);
     }
 
     [TestMethod]
-    [DynamicData(nameof(GreskeAzuriranja), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Izuzetak")]
+    [DynamicData(nameof(KorisnikControllerPodaci.AdminEditBezStampa), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
     [TestProperty("Autor", "Ahmed Spahic")]
-    public async Task Edit_Post_UpdateNeuspjesan_VracaViewSaGreskomIUlogom(string id, string ulogaPrijavljenog,
-        string uloga, string securityStamp, string[] greske, string ocekivanaPoruka, bool svjeziPostoji,
-        string trenutnaUloga, string ocekivanaUlogaUViewBagu)
+    public async Task Edit_PostAdmin_PrazanSecurityStamp_OsvjezavaStamp(string id)
     {
         // Arrange
-        Prijavi(id, ulogaPrijavljenog);
-        var postojeci = new Korisnik { Id = id, SecurityStamp = securityStamp };
-        _userManager.SetupSequence(u => u.FindByIdAsync(id))
-                    .ReturnsAsync(postojeci)
-                    .ReturnsAsync(svjeziPostoji ? postojeci : null);
-        _userManager.Setup(u => u.UpdateAsync(postojeci)).ReturnsAsync(Neuspjeh(greske));
-        _korisnikServis.Setup(s => s.GetUlogaAsync(postojeci)).ReturnsAsync(trenutnaUloga);
+        var red = KorisnikControllerPodaci.AdminEdit(id);
+        KorisnikControllerPodaci.Prijavi(_controller, _userManager, red.Id, red.UlogaPrijavljenog);
+        var postojeci = new Korisnik { Id = red.Id, SecurityStamp = red.SecurityStamp };
+        KorisnikControllerPodaci.PodesiUspjesanEdit(_userManager, postojeci, red.Token);
 
         // Act
-        var rezultat = await _controller.Edit(id, new Korisnik { Id = id }, uloga, null, null) as ViewResult;
+        await _controller.Edit(red.Id, red.Forma, red.Uloga, red.NovaLozinka, red.NovaLozinka);
+
+        // Assert
+        _userManager.Verify(u => u.UpdateSecurityStampAsync(postojeci), Times.Once);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.AdminEditSaStampom), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task Edit_PostAdmin_PostojeciSecurityStamp_NeOsvjezavaStamp(string id)
+    {
+        // Arrange
+        var red = KorisnikControllerPodaci.AdminEdit(id);
+        KorisnikControllerPodaci.Prijavi(_controller, _userManager, red.Id, red.UlogaPrijavljenog);
+        var postojeci = new Korisnik { Id = red.Id, SecurityStamp = red.SecurityStamp };
+        KorisnikControllerPodaci.PodesiUspjesanEdit(_userManager, postojeci, red.Token);
+
+        // Act
+        await _controller.Edit(red.Id, red.Forma, red.Uloga, red.NovaLozinka, red.NovaLozinka);
+
+        // Assert
+        _userManager.Verify(u => u.UpdateSecurityStampAsync(It.IsAny<Korisnik>()), Times.Never);
+    }
+
+    // ─── EDIT (POST): obični korisnik ─────────────────────────────────────
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.KorisnikEditSvi), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task Edit_PostKorisnik_ValidniPodaci_PreusmjeravaNaDetalje(string id)
+    {
+        // Arrange
+        var red = KorisnikControllerPodaci.KorisnikEdit(id);
+        KorisnikControllerPodaci.Prijavi(_controller, _userManager, red.Id, red.UlogaPrijavljenog);
+        var postojeci = new Korisnik
+        {
+            Id = red.Id, Ime = red.StaroIme, Prezime = red.StaroPrezime, SecurityStamp = red.SecurityStamp
+        };
+        KorisnikControllerPodaci.PodesiUspjesanEdit(_userManager, postojeci, red.Token);
+
+        // Act
+        var rezultat = await _controller.Edit(red.Id, red.Forma, red.UlogaPrijavljenog, red.NovaLozinka, red.Potvrda)
+            as RedirectToActionResult;
 
         // Assert
         Assert.IsNotNull(rezultat);
-        Assert.AreEqual(ocekivanaPoruka, PrvaGreska());
-        Assert.AreEqual(ocekivanaUlogaUViewBagu, _controller.ViewData["TrenutnaUloga"]);
+        Assert.AreEqual(nameof(KorisnikController.Details), rezultat.ActionName);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.KorisnikEditSvi), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    [Priority(1)]
+    public async Task Edit_PostKorisnik_ValidniPodaci_MijenjaKontakt(string id)
+    {
+        // Arrange
+        var red = KorisnikControllerPodaci.KorisnikEdit(id);
+        KorisnikControllerPodaci.Prijavi(_controller, _userManager, red.Id, red.UlogaPrijavljenog);
+        var postojeci = new Korisnik
+        {
+            Id = red.Id, Ime = red.StaroIme, Prezime = red.StaroPrezime, SecurityStamp = red.SecurityStamp
+        };
+        KorisnikControllerPodaci.PodesiUspjesanEdit(_userManager, postojeci, red.Token);
+
+        // Act
+        await _controller.Edit(red.Id, red.Forma, red.UlogaPrijavljenog, red.NovaLozinka, red.Potvrda);
+
+        // Assert
+        Assert.AreEqual(red.Forma.Email, postojeci.Email);
+        Assert.AreEqual(red.Forma.Email, postojeci.UserName);
+        Assert.AreEqual(red.Forma.PhoneNumber, postojeci.PhoneNumber);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.KorisnikEditSvi), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Autorizacija")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task Edit_PostKorisnik_ValidniPodaci_NeMijenjaImeIPrezime(string id)
+    {
+        // Arrange
+        var red = KorisnikControllerPodaci.KorisnikEdit(id);
+        KorisnikControllerPodaci.Prijavi(_controller, _userManager, red.Id, red.UlogaPrijavljenog);
+        var postojeci = new Korisnik
+        {
+            Id = red.Id, Ime = red.StaroIme, Prezime = red.StaroPrezime, SecurityStamp = red.SecurityStamp
+        };
+        KorisnikControllerPodaci.PodesiUspjesanEdit(_userManager, postojeci, red.Token);
+
+        // Act
+        await _controller.Edit(red.Id, red.Forma, red.UlogaPrijavljenog, red.NovaLozinka, red.Potvrda);
+
+        // Assert
+        Assert.AreEqual(red.StaroIme, postojeci.Ime);
+        Assert.AreEqual(red.StaroPrezime, postojeci.Prezime);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.KorisnikEditSvi), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock"), TestCategory("Autorizacija")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task Edit_PostKorisnik_ValidniPodaci_NeMijenjaUlogu(string id)
+    {
+        // Arrange
+        var red = KorisnikControllerPodaci.KorisnikEdit(id);
+        KorisnikControllerPodaci.Prijavi(_controller, _userManager, red.Id, red.UlogaPrijavljenog);
+        var postojeci = new Korisnik
+        {
+            Id = red.Id, Ime = red.StaroIme, Prezime = red.StaroPrezime, SecurityStamp = red.SecurityStamp
+        };
+        KorisnikControllerPodaci.PodesiUspjesanEdit(_userManager, postojeci, red.Token);
+
+        // Act
+        await _controller.Edit(red.Id, red.Forma, red.UlogaPrijavljenog, red.NovaLozinka, red.Potvrda);
+
+        // Assert
         _korisnikServis.Verify(s => s.PromijeniUloguAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
     }
 
     [TestMethod]
-    [DynamicData(nameof(GreskeLozinke), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Izuzetak")]
+    [DynamicData(nameof(KorisnikControllerPodaci.KorisnikEditSaLozinkom), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
     [TestProperty("Autor", "Ahmed Spahic")]
-    public async Task Edit_Post_ResetLozinkeNeuspjesan_VracaViewSaGreskom(string id, string ulogaPrijavljenog,
+    public async Task Edit_PostKorisnik_NovaLozinka_ResetujeLozinku(string id)
+    {
+        // Arrange
+        var red = KorisnikControllerPodaci.KorisnikEdit(id);
+        KorisnikControllerPodaci.Prijavi(_controller, _userManager, red.Id, red.UlogaPrijavljenog);
+        var postojeci = new Korisnik
+        {
+            Id = red.Id, Ime = red.StaroIme, Prezime = red.StaroPrezime, SecurityStamp = red.SecurityStamp
+        };
+        KorisnikControllerPodaci.PodesiUspjesanEdit(_userManager, postojeci, red.Token);
+
+        // Act
+        await _controller.Edit(red.Id, red.Forma, red.UlogaPrijavljenog, red.NovaLozinka, red.Potvrda);
+
+        // Assert
+        _userManager.Verify(u => u.ResetPasswordAsync(postojeci, red.Token, red.NovaLozinka!), Times.Once);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.KorisnikEditBezLozinke), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task Edit_PostKorisnik_BezNoveLozinke_NeResetujeLozinku(string id)
+    {
+        // Arrange
+        var red = KorisnikControllerPodaci.KorisnikEdit(id);
+        KorisnikControllerPodaci.Prijavi(_controller, _userManager, red.Id, red.UlogaPrijavljenog);
+        var postojeci = new Korisnik
+        {
+            Id = red.Id, Ime = red.StaroIme, Prezime = red.StaroPrezime, SecurityStamp = red.SecurityStamp
+        };
+        KorisnikControllerPodaci.PodesiUspjesanEdit(_userManager, postojeci, red.Token);
+
+        // Act
+        await _controller.Edit(red.Id, red.Forma, red.UlogaPrijavljenog, red.NovaLozinka, red.Potvrda);
+
+        // Assert
+        _userManager.Verify(u => u.ResetPasswordAsync(It.IsAny<Korisnik>(), It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.RazliciteLozinke), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Izuzetak")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task Edit_PostKorisnik_LozinkeSeNePodudaraju_PrikazujeGresku(string id, string ulogaPrijavljenog,
+        string securityStamp, string email, string novaLozinka, string potvrda, string ocekivanaPoruka,
+        string trenutnaUloga)
+    {
+        // Arrange
+        KorisnikControllerPodaci.Prijavi(_controller, _userManager, id, ulogaPrijavljenog);
+        var postojeci = new Korisnik { Id = id, SecurityStamp = securityStamp };
+        _userManager.Setup(u => u.FindByIdAsync(id)).ReturnsAsync(postojeci);
+        _userManager.Setup(u => u.UpdateAsync(postojeci)).ReturnsAsync(IdentityResult.Success);
+        _korisnikServis.Setup(s => s.GetUlogaAsync(postojeci)).ReturnsAsync(trenutnaUloga);
+
+        // Act
+        await _controller.Edit(id, new Korisnik { Id = id, Email = email }, trenutnaUloga, novaLozinka, potvrda);
+
+        // Assert
+        Assert.AreEqual(ocekivanaPoruka, KorisnikControllerPodaci.PrvaGreska(_controller));
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.RazliciteLozinke), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock"), TestCategory("Izuzetak")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task Edit_PostKorisnik_LozinkeSeNePodudaraju_NeResetujeLozinku(string id, string ulogaPrijavljenog,
+        string securityStamp, string email, string novaLozinka, string potvrda, string ocekivanaPoruka,
+        string trenutnaUloga)
+    {
+        // Arrange
+        KorisnikControllerPodaci.Prijavi(_controller, _userManager, id, ulogaPrijavljenog);
+        var postojeci = new Korisnik { Id = id, SecurityStamp = securityStamp };
+        _userManager.Setup(u => u.FindByIdAsync(id)).ReturnsAsync(postojeci);
+        _userManager.Setup(u => u.UpdateAsync(postojeci)).ReturnsAsync(IdentityResult.Success);
+        _korisnikServis.Setup(s => s.GetUlogaAsync(postojeci)).ReturnsAsync(trenutnaUloga);
+
+        // Act
+        await _controller.Edit(id, new Korisnik { Id = id, Email = email }, trenutnaUloga, novaLozinka, potvrda);
+
+        // Assert
+        _userManager.Verify(u => u.ResetPasswordAsync(It.IsAny<Korisnik>(), It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never);
+    }
+
+    // ─── EDIT (POST): greške Identity-ja ──────────────────────────────────
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.GreskeAzuriranjaSvi), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Izuzetak")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task Edit_Post_UpdateNeuspjesan_PrikazujeGresku(string id)
+    {
+        // Arrange
+        var red = KorisnikControllerPodaci.GreskaAzuriranja(id);
+        KorisnikControllerPodaci.Prijavi(_controller, _userManager, red.Id, red.UlogaPrijavljenog);
+        var postojeci = new Korisnik { Id = red.Id, SecurityStamp = red.SecurityStamp };
+        _userManager.Setup(u => u.FindByIdAsync(red.Id)).ReturnsAsync(postojeci);
+        _userManager.Setup(u => u.UpdateAsync(postojeci)).ReturnsAsync(KorisnikControllerPodaci.Neuspjeh(red.Greske));
+        _korisnikServis.Setup(s => s.GetUlogaAsync(postojeci)).ReturnsAsync(red.TrenutnaUloga);
+
+        // Act
+        await _controller.Edit(red.Id, new Korisnik { Id = red.Id }, red.Uloga, null, null);
+
+        // Assert
+        Assert.AreEqual(red.OcekivanaPoruka, KorisnikControllerPodaci.PrvaGreska(_controller));
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.GreskeAzuriranjaSvi), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock"), TestCategory("Izuzetak")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task Edit_Post_UpdateNeuspjesan_NeMijenjaUlogu(string id)
+    {
+        // Arrange
+        var red = KorisnikControllerPodaci.GreskaAzuriranja(id);
+        KorisnikControllerPodaci.Prijavi(_controller, _userManager, red.Id, red.UlogaPrijavljenog);
+        var postojeci = new Korisnik { Id = red.Id, SecurityStamp = red.SecurityStamp };
+        _userManager.Setup(u => u.FindByIdAsync(red.Id)).ReturnsAsync(postojeci);
+        _userManager.Setup(u => u.UpdateAsync(postojeci)).ReturnsAsync(KorisnikControllerPodaci.Neuspjeh(red.Greske));
+        _korisnikServis.Setup(s => s.GetUlogaAsync(postojeci)).ReturnsAsync(red.TrenutnaUloga);
+
+        // Act
+        await _controller.Edit(red.Id, new Korisnik { Id = red.Id }, red.Uloga, null, null);
+
+        // Assert
+        _korisnikServis.Verify(s => s.PromijeniUloguAsync(It.IsAny<string>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.GreskeAzuriranjaKorisnikPostoji), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Izuzetak")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task Edit_Post_UpdateNeuspjesanKorisnikPostoji_PrikazujeUloguIzBaze(string id)
+    {
+        // Arrange
+        var red = KorisnikControllerPodaci.GreskaAzuriranja(id);
+        KorisnikControllerPodaci.Prijavi(_controller, _userManager, red.Id, red.UlogaPrijavljenog);
+        var postojeci = new Korisnik { Id = red.Id, SecurityStamp = red.SecurityStamp };
+        _userManager.Setup(u => u.FindByIdAsync(red.Id)).ReturnsAsync(postojeci);
+        _userManager.Setup(u => u.UpdateAsync(postojeci)).ReturnsAsync(KorisnikControllerPodaci.Neuspjeh(red.Greske));
+        _korisnikServis.Setup(s => s.GetUlogaAsync(postojeci)).ReturnsAsync(red.TrenutnaUloga);
+
+        // Act
+        await _controller.Edit(red.Id, new Korisnik { Id = red.Id }, red.Uloga, null, null);
+
+        // Assert
+        Assert.AreEqual(red.OcekivanaUlogaUViewBagu, _controller.ViewData["TrenutnaUloga"]);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.GreskeAzuriranjaKorisnikObrisan), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Izuzetak")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task Edit_Post_UpdateNeuspjesanKorisnikObrisan_PrikazujePoslanuUlogu(string id)
+    {
+        // Arrange
+        var red = KorisnikControllerPodaci.GreskaAzuriranja(id);
+        KorisnikControllerPodaci.Prijavi(_controller, _userManager, red.Id, red.UlogaPrijavljenog);
+        var postojeci = new Korisnik { Id = red.Id, SecurityStamp = red.SecurityStamp };
+        _userManager.SetupSequence(u => u.FindByIdAsync(red.Id))
+                    .ReturnsAsync(postojeci)
+                    .ReturnsAsync((Korisnik?)null);
+        _userManager.Setup(u => u.UpdateAsync(postojeci)).ReturnsAsync(KorisnikControllerPodaci.Neuspjeh(red.Greske));
+
+        // Act
+        await _controller.Edit(red.Id, new Korisnik { Id = red.Id }, red.Uloga, null, null);
+
+        // Assert
+        Assert.AreEqual(red.OcekivanaUlogaUViewBagu, _controller.ViewData["TrenutnaUloga"]);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.GreskeLozinke), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Izuzetak")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task Edit_Post_ResetLozinkeNeuspjesan_PrikazujeGresku(string id, string ulogaPrijavljenog,
         string uloga, string securityStamp, string novaLozinka, string token, string[] greske,
         string ocekivanaPoruka, string trenutnaUloga)
     {
         // Arrange
-        Prijavi(id, ulogaPrijavljenog);
+        KorisnikControllerPodaci.Prijavi(_controller, _userManager, id, ulogaPrijavljenog);
         var postojeci = new Korisnik { Id = id, SecurityStamp = securityStamp };
         _userManager.Setup(u => u.FindByIdAsync(id)).ReturnsAsync(postojeci);
         _userManager.Setup(u => u.UpdateAsync(postojeci)).ReturnsAsync(IdentityResult.Success);
         _userManager.Setup(u => u.GeneratePasswordResetTokenAsync(postojeci)).ReturnsAsync(token);
-        _userManager.Setup(u => u.ResetPasswordAsync(postojeci, token, novaLozinka)).ReturnsAsync(Neuspjeh(greske));
+        _userManager.Setup(u => u.ResetPasswordAsync(postojeci, token, novaLozinka))
+                    .ReturnsAsync(KorisnikControllerPodaci.Neuspjeh(greske));
         _korisnikServis.Setup(s => s.GetUlogaAsync(postojeci)).ReturnsAsync(trenutnaUloga);
 
         // Act
-        var rezultat = await _controller.Edit(id, new Korisnik { Id = id }, uloga, novaLozinka, novaLozinka)
-            as ViewResult;
+        await _controller.Edit(id, new Korisnik { Id = id }, uloga, novaLozinka, novaLozinka);
 
         // Assert
-        Assert.IsNotNull(rezultat);
-        Assert.AreEqual(ocekivanaPoruka, PrvaGreska());
-        Assert.AreEqual(trenutnaUloga, _controller.ViewData["TrenutnaUloga"]);
+        Assert.AreEqual(ocekivanaPoruka, KorisnikControllerPodaci.PrvaGreska(_controller));
     }
 
     // ─── DELETE (GET) ─────────────────────────────────────────────────────
 
     [TestMethod]
-    [DynamicData(nameof(NepostojeciId), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [DynamicData(nameof(KorisnikControllerPodaci.NepostojeciId), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
     [TestProperty("Autor", "Ahmed Spahic")]
     public async Task Delete_Get_IdPrazanIliNepostojeci_VracaNotFound(string id, string opis)
     {
@@ -699,17 +1383,17 @@ public class KorisnikControllerTests
         _korisnikServis.Setup(s => s.GetByIdAsync(It.IsAny<string>())).ReturnsAsync((Korisnik?)null);
 
         // Act
-        var rezultat = await _controller.Delete(Prazno(id));
+        var rezultat = await _controller.Delete(KorisnikControllerPodaci.Prazno(id));
 
         // Assert
         Assert.IsInstanceOfType(rezultat, typeof(NotFoundResult), opis);
     }
 
     [TestMethod]
-    [DynamicData(nameof(PostojeciKorisnici), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [DynamicData(nameof(KorisnikControllerPodaci.PostojeciKorisnici), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
     [TestProperty("Autor", "Ahmed Spahic")]
-    public async Task Delete_Get_KorisnikPostoji_VracaPotvrduSaUlogom(string id, string ime, string prezime,
+    public async Task Delete_Get_KorisnikPostoji_VracaPotvrduSKorisnikom(string id, string ime, string prezime,
         string uloga)
     {
         // Arrange
@@ -723,14 +1407,31 @@ public class KorisnikControllerTests
         // Assert
         Assert.IsNotNull(rezultat);
         Assert.AreSame(korisnik, rezultat.Model);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.PostojeciKorisnici), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task Delete_Get_KorisnikPostoji_PrikazujeUlogu(string id, string ime, string prezime, string uloga)
+    {
+        // Arrange
+        var korisnik = new Korisnik { Id = id, Ime = ime, Prezime = prezime };
+        _korisnikServis.Setup(s => s.GetByIdAsync(id)).ReturnsAsync(korisnik);
+        _korisnikServis.Setup(s => s.GetUlogaAsync(korisnik)).ReturnsAsync(uloga);
+
+        // Act
+        await _controller.Delete(id);
+
+        // Assert
         Assert.AreEqual(uloga, _controller.ViewData["Uloga"]);
     }
 
     // ─── DELETE (POST) ────────────────────────────────────────────────────
 
     [TestMethod]
-    [DynamicData(nameof(BrisanjeNepostojeci), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [DynamicData(nameof(KorisnikControllerPodaci.BrisanjeNepostojeci), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
     [TestProperty("Autor", "Ahmed Spahic")]
     public async Task DeleteConfirmed_KorisnikNePostoji_VracaNotFound(string id)
     {
@@ -742,25 +1443,16 @@ public class KorisnikControllerTests
 
         // Assert
         Assert.IsInstanceOfType(rezultat, typeof(NotFoundResult));
-        _userManager.Verify(u => u.DeleteAsync(It.IsAny<Korisnik>()), Times.Never);
     }
 
     [TestMethod]
-    [DynamicData(nameof(ScenarijiBrisanja), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("InMemory"), TestCategory("Mock")]
+    [DynamicData(nameof(KorisnikControllerPodaci.ScenarijiBrisanja), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Fake")]
     [TestProperty("Autor", "Ahmed Spahic")]
-    [Priority(1)]
-    [Timeout(5000)]
-    public async Task DeleteConfirmed_KorisnikPostoji_BriseVezanePodatkeIKorisnika(string naziv)
+    public async Task DeleteConfirmed_KorisnikPostoji_PreusmjeravaNaIndex(string naziv)
     {
         // Arrange
-        var scenarij = Scenarij("KorisnikController_brisanje.xml", naziv);
-        NapuniBazu(scenarij);
-        var id = (string)scenarij.Element("korisnikId")!;
-        var korisnik = new Korisnik { Id = id };
-        _userManager.Setup(u => u.FindByIdAsync(id)).ReturnsAsync(korisnik);
-        _userManager.Setup(u => u.DeleteAsync(korisnik)).ReturnsAsync(IdentityResult.Success);
-        var ocekivano = scenarij.Element("ocekivano")!;
+        var (id, _, _) = KorisnikControllerPodaci.PripremiBrisanje(_imeBaze, _userManager, naziv);
 
         // Act
         var rezultat = await _controller.DeleteConfirmed(id) as RedirectToActionResult;
@@ -768,44 +1460,177 @@ public class KorisnikControllerTests
         // Assert
         Assert.IsNotNull(rezultat);
         Assert.AreEqual(nameof(KorisnikController.Index), rezultat.ActionName);
-        using var provjera = NovaBaza();
-        Assert.AreEqual((int)ocekivano.Attribute("termini")!, provjera.Termin.Count());
-        Assert.AreEqual((int)ocekivano.Attribute("nalazi")!, provjera.Nalaz.Count());
-        Assert.AreEqual((int)ocekivano.Attribute("notifikacije")!, provjera.Notifikacija.Count());
-        Assert.AreEqual((int)ocekivano.Attribute("listeCekanja")!, provjera.ListaCekanja.Count());
-        Assert.AreEqual((int)ocekivano.Attribute("naListi")!, provjera.KorisnikNaListi.Count());
-        Assert.AreEqual((int)ocekivano.Attribute("recenzije")!, provjera.Recenzija.Count());
-        Assert.IsFalse(provjera.Termin.Any(t => t.DoktorID == id || t.PacijentID == id));
-        Assert.IsFalse(provjera.Recenzija.Any(r => r.DoktorID == id || r.PacijentID == id));
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.ScenarijiBrisanja), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Fake")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    [Priority(1)]
+    [Timeout(5000)]
+    public async Task DeleteConfirmed_KorisnikPostoji_BriseNjegoveTermine(string naziv)
+    {
+        // Arrange
+        var (id, _, ocekivano) = KorisnikControllerPodaci.PripremiBrisanje(_imeBaze, _userManager, naziv);
+
+        // Act
+        await _controller.DeleteConfirmed(id);
+
+        // Assert
+        using var baza = KorisnikControllerPodaci.NovaBaza(_imeBaze);
+        Assert.AreEqual((int)ocekivano.Attribute("termini")!, baza.Termin.Count());
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.ScenarijiBrisanja), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Fake")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    [Timeout(5000)]
+    public async Task DeleteConfirmed_KorisnikPostoji_BriseNalazeNjegovihTermina(string naziv)
+    {
+        // Arrange
+        var (id, _, ocekivano) = KorisnikControllerPodaci.PripremiBrisanje(_imeBaze, _userManager, naziv);
+
+        // Act
+        await _controller.DeleteConfirmed(id);
+
+        // Assert
+        using var baza = KorisnikControllerPodaci.NovaBaza(_imeBaze);
+        Assert.AreEqual((int)ocekivano.Attribute("nalazi")!, baza.Nalaz.Count());
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.ScenarijiBrisanja), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Fake")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    [Timeout(5000)]
+    public async Task DeleteConfirmed_KorisnikPostoji_BriseNotifikacijeNjegovihTermina(string naziv)
+    {
+        // Arrange
+        var (id, _, ocekivano) = KorisnikControllerPodaci.PripremiBrisanje(_imeBaze, _userManager, naziv);
+
+        // Act
+        await _controller.DeleteConfirmed(id);
+
+        // Assert
+        using var baza = KorisnikControllerPodaci.NovaBaza(_imeBaze);
+        Assert.AreEqual((int)ocekivano.Attribute("notifikacije")!, baza.Notifikacija.Count());
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.ScenarijiBrisanja), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Fake")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    [Timeout(5000)]
+    public async Task DeleteConfirmed_KorisnikPostoji_BriseNjegoveListeCekanja(string naziv)
+    {
+        // Arrange
+        var (id, _, ocekivano) = KorisnikControllerPodaci.PripremiBrisanje(_imeBaze, _userManager, naziv);
+
+        // Act
+        await _controller.DeleteConfirmed(id);
+
+        // Assert
+        using var baza = KorisnikControllerPodaci.NovaBaza(_imeBaze);
+        Assert.AreEqual((int)ocekivano.Attribute("listeCekanja")!, baza.ListaCekanja.Count());
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.ScenarijiBrisanja), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Fake")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    [Timeout(5000)]
+    public async Task DeleteConfirmed_KorisnikPostoji_BriseZapiseNaListamaCekanja(string naziv)
+    {
+        // Arrange
+        var (id, _, ocekivano) = KorisnikControllerPodaci.PripremiBrisanje(_imeBaze, _userManager, naziv);
+
+        // Act
+        await _controller.DeleteConfirmed(id);
+
+        // Assert
+        using var baza = KorisnikControllerPodaci.NovaBaza(_imeBaze);
+        Assert.AreEqual((int)ocekivano.Attribute("naListi")!, baza.KorisnikNaListi.Count());
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.ScenarijiBrisanja), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Fake")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    [Timeout(5000)]
+    public async Task DeleteConfirmed_KorisnikPostoji_BriseNjegoveRecenzije(string naziv)
+    {
+        // Arrange
+        var (id, _, ocekivano) = KorisnikControllerPodaci.PripremiBrisanje(_imeBaze, _userManager, naziv);
+
+        // Act
+        await _controller.DeleteConfirmed(id);
+
+        // Assert
+        using var baza = KorisnikControllerPodaci.NovaBaza(_imeBaze);
+        Assert.AreEqual((int)ocekivano.Attribute("recenzije")!, baza.Recenzija.Count());
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.ScenarijiBrisanja), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock"), TestCategory("Fake")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    [Priority(1)]
+    public async Task DeleteConfirmed_KorisnikPostoji_BriseKorisnikaKrozUserManager(string naziv)
+    {
+        // Arrange
+        var (id, korisnik, _) = KorisnikControllerPodaci.PripremiBrisanje(_imeBaze, _userManager, naziv);
+
+        // Act
+        await _controller.DeleteConfirmed(id);
+
+        // Assert
         _userManager.Verify(u => u.DeleteAsync(korisnik), Times.Once);
     }
 
     [TestMethod]
-    [DynamicData(nameof(GreskeBrisanja), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Izuzetak")]
+    [DynamicData(nameof(KorisnikControllerPodaci.GreskeBrisanja), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Izuzetak")]
     [TestProperty("Autor", "Ahmed Spahic")]
-    public async Task DeleteConfirmed_BrisanjeNeuspjesno_VracaViewSaGreskom(string id, string uloga,
+    public async Task DeleteConfirmed_BrisanjeNeuspjesno_PrikazujeGresku(string id, string uloga,
         string[] greske, string ocekivanaPoruka)
     {
         // Arrange
         var korisnik = new Korisnik { Id = id };
         _userManager.Setup(u => u.FindByIdAsync(id)).ReturnsAsync(korisnik);
-        _userManager.Setup(u => u.DeleteAsync(korisnik)).ReturnsAsync(Neuspjeh(greske));
+        _userManager.Setup(u => u.DeleteAsync(korisnik)).ReturnsAsync(KorisnikControllerPodaci.Neuspjeh(greske));
         _korisnikServis.Setup(s => s.GetUlogaAsync(korisnik)).ReturnsAsync(uloga);
 
         // Act
-        var rezultat = await _controller.DeleteConfirmed(id) as ViewResult;
+        await _controller.DeleteConfirmed(id);
 
         // Assert
-        Assert.IsNotNull(rezultat);
-        Assert.AreSame(korisnik, rezultat.Model);
         Assert.AreEqual(ocekivanaPoruka, _controller.ViewData["GreskaBrisanja"]);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.GreskeBrisanja), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Izuzetak")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task DeleteConfirmed_BrisanjeNeuspjesno_ZadrzavaPrikazUloge(string id, string uloga,
+        string[] greske, string ocekivanaPoruka)
+    {
+        // Arrange
+        var korisnik = new Korisnik { Id = id };
+        _userManager.Setup(u => u.FindByIdAsync(id)).ReturnsAsync(korisnik);
+        _userManager.Setup(u => u.DeleteAsync(korisnik)).ReturnsAsync(KorisnikControllerPodaci.Neuspjeh(greske));
+        _korisnikServis.Setup(s => s.GetUlogaAsync(korisnik)).ReturnsAsync(uloga);
+
+        // Act
+        await _controller.DeleteConfirmed(id);
+
+        // Assert
         Assert.AreEqual(uloga, _controller.ViewData["Uloga"]);
     }
 
     [TestMethod]
-    [DynamicData(nameof(UnutrasnjaGreska), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Izuzetak")]
+    [DynamicData(nameof(KorisnikControllerPodaci.UnutrasnjaGreska), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Izuzetak")]
     [TestProperty("Autor", "Ahmed Spahic")]
     public async Task DeleteConfirmed_IzuzetakSaUnutrasnjim_PrikazujeUnutrasnjuPoruku(string id, string uloga,
         string vanjskaPoruka, string unutrasnjaPoruka)
@@ -818,24 +1643,26 @@ public class KorisnikControllerTests
         _korisnikServis.Setup(s => s.GetUlogaAsync(korisnik)).ReturnsAsync(uloga);
 
         // Act
-        var rezultat = await _controller.DeleteConfirmed(id) as ViewResult;
+        await _controller.DeleteConfirmed(id);
 
         // Assert
-        Assert.IsNotNull(rezultat);
         Assert.AreEqual(unutrasnjaPoruka, _controller.ViewData["GreskaBrisanja"]);
     }
 
     // ─── POPRAVI STAMPOVE ─────────────────────────────────────────────────
 
     [TestMethod]
-    [DynamicData(nameof(Stampovi), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [DynamicData(nameof(KorisnikControllerPodaci.Stampovi), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
     [TestProperty("Autor", "Ahmed Spahic")]
-    public async Task PopraviStampove_NekiKorisniciBezStampa_AzuriraSamoNjih(string[] ids, string[] stampovi,
+    public async Task PopraviStampove_NekiKorisniciBezStampa_VracaPorukuSBrojem(string[] ids, string[] stampovi,
         int ocekivaniBroj, string ocekivanaPoruka)
     {
         // Arrange
-        var korisnici = ids.Select((id, i) => new Korisnik { Id = id, SecurityStamp = Prazno(stampovi[i]) }).ToList();
+        var korisnici = ids.Select((id, i) => new Korisnik
+        {
+            Id = id, SecurityStamp = KorisnikControllerPodaci.Prazno(stampovi[i])
+        }).ToList();
         _korisnikServis.Setup(s => s.GetAllAsync()).ReturnsAsync(korisnici);
         _userManager.Setup(u => u.UpdateSecurityStampAsync(It.IsAny<Korisnik>())).ReturnsAsync(IdentityResult.Success);
 
@@ -845,6 +1672,27 @@ public class KorisnikControllerTests
         // Assert
         Assert.IsNotNull(rezultat);
         Assert.AreEqual(ocekivanaPoruka, rezultat.Content);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(KorisnikControllerPodaci.Stampovi), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task PopraviStampove_NekiKorisniciBezStampa_AzuriraSamoNjih(string[] ids, string[] stampovi,
+        int ocekivaniBroj, string ocekivanaPoruka)
+    {
+        // Arrange
+        var korisnici = ids.Select((id, i) => new Korisnik
+        {
+            Id = id, SecurityStamp = KorisnikControllerPodaci.Prazno(stampovi[i])
+        }).ToList();
+        _korisnikServis.Setup(s => s.GetAllAsync()).ReturnsAsync(korisnici);
+        _userManager.Setup(u => u.UpdateSecurityStampAsync(It.IsAny<Korisnik>())).ReturnsAsync(IdentityResult.Success);
+
+        // Act
+        await _controller.PopraviStampove();
+
+        // Assert
         _userManager.Verify(u => u.UpdateSecurityStampAsync(It.IsAny<Korisnik>()), Times.Exactly(ocekivaniBroj));
     }
 }
