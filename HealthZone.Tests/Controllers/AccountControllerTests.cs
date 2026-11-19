@@ -9,49 +9,46 @@ using IdentitySignInResult = Microsoft.AspNetCore.Identity.SignInResult;
 
 namespace HealthZone.Tests;
 
-[TestClass]
-public class AccountControllerTests
+// ─── Izvori podataka i pomoćne metode za AccountControllerTests ─────────
+public static class AccountControllerPodaci
 {
-    private Mock<UserManager<Korisnik>> _userManager = null!;
-    private Mock<SignInManager<Korisnik>> _signInManager = null!;
-    private AccountController _controller = null!;
+    // ── pomoćne metode ──
 
-    [TestInitialize]
-    public void Setup()
-    {
-        // UserManager i SignInManager su klase, pa im trebaju posebni konstruktori za Moq.
-        _userManager = new Mock<UserManager<Korisnik>>(Mock.Of<IUserStore<Korisnik>>(),
-            null!, null!, null!, null!, null!, null!, null!, null!);
-        _signInManager = new Mock<SignInManager<Korisnik>>(_userManager.Object,
-            Mock.Of<IHttpContextAccessor>(), Mock.Of<IUserClaimsPrincipalFactory<Korisnik>>(),
-            null!, null!, null!, null!);
+    // UserManager i SignInManager su klase, pa im Moq treba posebne konstruktore.
+    public static Mock<UserManager<Korisnik>> NapraviUserManager()
+        => new(Mock.Of<IUserStore<Korisnik>>(), null!, null!, null!, null!, null!, null!, null!, null!);
 
-        _controller = new AccountController(_signInManager.Object, _userManager.Object);
-    }
-
-    // ───────────── Pomoćne metode ─────────────
+    public static Mock<SignInManager<Korisnik>> NapraviSignInManager(Mock<UserManager<Korisnik>> userManager)
+        => new(userManager.Object, Mock.Of<IHttpContextAccessor>(), Mock.Of<IUserClaimsPrincipalFactory<Korisnik>>(),
+               null!, null!, null!, null!);
 
     // Ispravni podaci za registraciju (iz CSV-a), za testove kojima su potrebni, a ne testiraju ih.
-    private static string[] ValidniPodaci() =>
+    public static string[] ValidniPodaci() =>
         CsvLoader.Ucitaj("AccountController_validniPodaci.csv").Single();
 
-    private void PrijavaUspijeva(string email, string lozinka) =>
-        _signInManager.Setup(s => s.PasswordSignInAsync(email, lozinka, false, false))
-                      .ReturnsAsync(IdentitySignInResult.Success);
+    public static void PrijavaUspijeva(Mock<SignInManager<Korisnik>> signInManager, string email, string lozinka) =>
+        signInManager.Setup(s => s.PasswordSignInAsync(email, lozinka, false, false))
+                     .ReturnsAsync(IdentitySignInResult.Success);
 
     // Identity vraća greške kad CreateAsync ne uspije.
-    private void RegistracijaVracaGreske(params IdentityError[] greske) =>
-        _userManager.Setup(u => u.CreateAsync(It.IsAny<Korisnik>(), It.IsAny<string>()))
-                    .ReturnsAsync(IdentityResult.Failed(greske));
+    public static void RegistracijaVracaGreske(Mock<UserManager<Korisnik>> userManager, params IdentityError[] greske) =>
+        userManager.Setup(u => u.CreateAsync(It.IsAny<Korisnik>(), It.IsAny<string>()))
+                   .ReturnsAsync(IdentityResult.Failed(greske));
+
+    public static void RegistracijaUspijeva(Mock<UserManager<Korisnik>> userManager, string lozinka) =>
+        userManager.Setup(u => u.CreateAsync(It.IsAny<Korisnik>(), lozinka)).ReturnsAsync(IdentityResult.Success);
 
     // Poziva Register s ispravnim podacima iz CSV-a (lozinka i potvrda su iste).
-    private Task<IActionResult> RegistrujValidnogKorisnika()
+    public static Task<IActionResult> RegistrujValidnogKorisnika(AccountController controller)
     {
         var p = ValidniPodaci();
-        return _controller.Register(p[0], p[1], p[2], p[3], p[4], p[4]);
+        return controller.Register(p[0], p[1], p[2], p[3], p[4], p[4]);
     }
 
-    // ───────────── Izvori podataka (CSV i XML) ─────────────
+    // ── izvori podataka (CSV) ──
+
+    public static IEnumerable<object[]> Prikaz() =>
+        CsvLoader.Ucitaj("AccountController_prikaz.csv").Select(r => new object[] { r[0] });
 
     public static IEnumerable<object[]> ReturnUrl() =>
         CsvLoader.Ucitaj("AccountController_returnUrl.csv").Select(r => new object[] { r[0] });
@@ -85,6 +82,9 @@ public class AccountControllerTests
     public static IEnumerable<object[]> GreskeRegistracije() =>
         CsvLoader.Ucitaj("AccountController_greskeRegistracije.csv").Select(r => new object[] { r[0], r[1], r[2] });
 
+    // ── izvori podataka (XML) ──
+
+    // Prazan telefon se snima kao null (element ocekivaniTelefon ne postoji).
     public static IEnumerable<object[]> Telefon() =>
         XmlLoader.Ucitaj("AccountController_telefon.xml", "scenarij")
                  .Select(x => new object[]
@@ -102,11 +102,46 @@ public class AccountControllerTests
                       .ToArray(),
                      (string)x.Element("ocekivanaPoruka")!
                  });
+}
 
-    // ───────────── Login (GET), AccessDenied, Register (GET) ─────────────
+// ─── Testovi ────────────────────────────────────────────────────────────
+[TestClass]
+public class AccountControllerTests
+{
+    private static string _folderPodataka = null!;
+
+    private Mock<UserManager<Korisnik>> _userManager = null!;
+    private Mock<SignInManager<Korisnik>> _signInManager = null!;
+    private AccountController _controller = null!;
+
+    [ClassInitialize]
+    public static void ClassInit(TestContext context)
+    {
+        // Jednom za cijelu klasu: provjera da su CSV i XML fajlovi kopirani uz testove.
+        _folderPodataka = Path.Combine(AppContext.BaseDirectory, "TestData");
+        Assert.IsTrue(Directory.Exists(_folderPodataka), "Folder TestData nije kopiran u output.");
+    }
+
+    [TestInitialize]
+    public void Setup()
+    {
+        _userManager = AccountControllerPodaci.NapraviUserManager();
+        _signInManager = AccountControllerPodaci.NapraviSignInManager(_userManager);
+        _controller = new AccountController(_signInManager.Object, _userManager.Object);
+    }
+
+    [TestCleanup]
+    public void Cleanup()
+    {
+        _controller.Dispose();
+        _userManager.Reset();
+        _signInManager.Reset();
+    }
+
+    // ─── Login (GET), AccessDenied, Register (GET) ────────────────────────
 
     [TestMethod]
-    [DynamicData(nameof(ReturnUrl), DynamicDataSourceType.Method)]
+    [DynamicData(nameof(AccountControllerPodaci.ReturnUrl), typeof(AccountControllerPodaci), DynamicDataSourceType.Method)]
     [TestCategory("DataDriven")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
     public void Login_Get_PamtiReturnUrlUViewData(string returnUrl)
@@ -119,47 +154,63 @@ public class AccountControllerTests
     }
 
     [TestMethod]
+    [DynamicData(nameof(AccountControllerPodaci.Prikaz), typeof(AccountControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
-    public void AccessDenied_Poziv_VracaView()
+    public void AccessDenied_Poziv_VracaView(string ocekivaniRezultat)
     {
         // Act
         var rezultat = _controller.AccessDenied();
 
         // Assert
-        Assert.IsInstanceOfType(rezultat, typeof(ViewResult));
+        Assert.AreEqual(ocekivaniRezultat, rezultat.GetType().Name);
     }
 
     [TestMethod]
+    [DynamicData(nameof(AccountControllerPodaci.Prikaz), typeof(AccountControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
-    public void Register_Get_VracaView()
+    public void Register_Get_VracaView(string ocekivaniRezultat)
     {
         // Act
         var rezultat = _controller.Register();
 
         // Assert
-        Assert.IsInstanceOfType(rezultat, typeof(ViewResult));
+        Assert.AreEqual(ocekivaniRezultat, rezultat.GetType().Name);
     }
 
-    // ───────────── Login (POST) ─────────────
+    // ─── Login (POST) ─────────────────────────────────────────────────────
 
     [TestMethod]
-    [DynamicData(nameof(PraznaPrijava), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [DynamicData(nameof(AccountControllerPodaci.PraznaPrijava), typeof(AccountControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Izuzetak")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
     [Priority(1)]
-    public async Task Login_PrazanEmailIliLozinka_PrikazujeGreskuINePrijavljuje(string email, string lozinka, string ocekivanaPoruka)
+    public async Task Login_PrazanEmailIliLozinka_PrikazujeGresku(string email, string lozinka, string ocekivanaPoruka)
     {
         // Act
         var rezultat = (ViewResult)await _controller.Login(email, lozinka);
 
         // Assert
         Assert.AreEqual(ocekivanaPoruka, rezultat.ViewData["Greška"]);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(AccountControllerPodaci.PraznaPrijava), typeof(AccountControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Fatih Crljenkovic")]
+    public async Task Login_PrazanEmailIliLozinka_NePokusavaPrijavu(string email, string lozinka, string ocekivanaPoruka)
+    {
+        // Act
+        await _controller.Login(email, lozinka);
+
+        // Assert
         _signInManager.Verify(s => s.PasswordSignInAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>(), It.IsAny<bool>()), Times.Never);
     }
 
     [TestMethod]
-    [DynamicData(nameof(PogresnaPrijava), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [DynamicData(nameof(AccountControllerPodaci.PogresnaPrijava), typeof(AccountControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Izuzetak")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
     [Priority(1)]
     public async Task Login_PogresniPodaci_PrikazujeGresku(string email, string lozinka, string ocekivanaPoruka)
@@ -173,18 +224,34 @@ public class AccountControllerTests
 
         // Assert
         Assert.AreEqual(ocekivanaPoruka, rezultat.ViewData["Greška"]);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(AccountControllerPodaci.PogresnaPrijava), typeof(AccountControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Fatih Crljenkovic")]
+    public async Task Login_PogresniPodaci_PokusavaPrijavuSUnesenimPodacima(string email, string lozinka, string ocekivanaPoruka)
+    {
+        // Arrange
+        _signInManager.Setup(s => s.PasswordSignInAsync(email, lozinka, false, false))
+                      .ReturnsAsync(IdentitySignInResult.Failed);
+
+        // Act
+        await _controller.Login(email, lozinka);
+
+        // Assert
         _signInManager.Verify(s => s.PasswordSignInAsync(email, lozinka, false, false), Times.Once);
     }
 
     [TestMethod]
-    [DynamicData(nameof(LokalniReturnUrl), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [DynamicData(nameof(AccountControllerPodaci.LokalniReturnUrl), typeof(AccountControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
     [Timeout(2000)]
     public async Task Login_UspjesnaPrijavaSLokalnimReturnUrl_VracaNaTajUrl(string email, string lozinka, string returnUrl)
     {
         // Arrange
-        PrijavaUspijeva(email, lozinka);
+        AccountControllerPodaci.PrijavaUspijeva(_signInManager, email, lozinka);
         _controller.Url = Mock.Of<IUrlHelper>(u => u.IsLocalUrl(returnUrl) == true);
 
         // Act
@@ -195,14 +262,14 @@ public class AccountControllerTests
     }
 
     [TestMethod]
-    [DynamicData(nameof(BezReturnUrl), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [DynamicData(nameof(AccountControllerPodaci.BezReturnUrl), typeof(AccountControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
     public async Task Login_UspjesnaPrijavaBezLokalnogReturnUrl_IdeNaPocetnu(
         string email, string lozinka, string returnUrl, bool jeLokalni, string ocekivanaAkcija, string ocekivaniKontroler)
     {
         // Arrange
-        PrijavaUspijeva(email, lozinka);
+        AccountControllerPodaci.PrijavaUspijeva(_signInManager, email, lozinka);
         _controller.Url = Mock.Of<IUrlHelper>(u => u.IsLocalUrl(It.IsAny<string>()) == jeLokalni);
 
         // Act
@@ -213,13 +280,13 @@ public class AccountControllerTests
         Assert.AreEqual(ocekivaniKontroler, rezultat.ControllerName);
     }
 
-    // ───────────── Logout ─────────────
+    // ─── Logout ───────────────────────────────────────────────────────────
 
     [TestMethod]
-    [DynamicData(nameof(Odjava), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [DynamicData(nameof(AccountControllerPodaci.Odjava), typeof(AccountControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
-    public async Task Logout_PrijavljenKorisnik_OdjavljujeIVracaNaLogin(string ocekivanaAkcija, string ocekivaniKontroler)
+    public async Task Logout_PrijavljenKorisnik_VracaNaLogin(string ocekivanaAkcija, string ocekivaniKontroler)
     {
         // Act
         var rezultat = (RedirectToActionResult)await _controller.Logout();
@@ -227,33 +294,57 @@ public class AccountControllerTests
         // Assert
         Assert.AreEqual(ocekivanaAkcija, rezultat.ActionName);
         Assert.AreEqual(ocekivaniKontroler, rezultat.ControllerName);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(AccountControllerPodaci.Odjava), typeof(AccountControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Fatih Crljenkovic")]
+    public async Task Logout_PrijavljenKorisnik_OdjavljujeKorisnika(string ocekivanaAkcija, string ocekivaniKontroler)
+    {
+        // Act
+        await _controller.Logout();
+
+        // Assert
         _signInManager.Verify(s => s.SignOutAsync(), Times.Once);
     }
 
-    // ───────────── Register (POST) ─────────────
+    // ─── Register (POST): neispravan unos ─────────────────────────────────
 
     [TestMethod]
-    [DynamicData(nameof(PraznaPolja), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [DynamicData(nameof(AccountControllerPodaci.PraznaPolja), typeof(AccountControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Izuzetak")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
-    public async Task Register_PraznoObaveznoPolje_PrikazujeGreskuINeKreira(string ime, string prezime, string email, string lozinka, string ocekivanaPoruka)
+    public async Task Register_PraznoObaveznoPolje_PrikazujeGresku(string ime, string prezime, string email, string lozinka, string ocekivanaPoruka)
     {
         // Act
         var rezultat = (ViewResult)await _controller.Register(ime, prezime, email, string.Empty, lozinka, lozinka);
 
         // Assert
         Assert.AreEqual(ocekivanaPoruka, rezultat.ViewData["Greška"]);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(AccountControllerPodaci.PraznaPolja), typeof(AccountControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Fatih Crljenkovic")]
+    public async Task Register_PraznoObaveznoPolje_NeKreiraKorisnika(string ime, string prezime, string email, string lozinka, string ocekivanaPoruka)
+    {
+        // Act
+        await _controller.Register(ime, prezime, email, string.Empty, lozinka, lozinka);
+
+        // Assert
         _userManager.Verify(u => u.CreateAsync(It.IsAny<Korisnik>(), It.IsAny<string>()), Times.Never);
     }
 
     [TestMethod]
-    [DynamicData(nameof(RazliciteLozinke), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven")]
+    [DynamicData(nameof(AccountControllerPodaci.RazliciteLozinke), typeof(AccountControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Izuzetak")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
     public async Task Register_LozinkeSeNePodudaraju_PrikazujeGresku(string lozinka, string potvrdiLozinku, string ocekivanaPoruka)
     {
         // Arrange
-        var p = ValidniPodaci();
+        var p = AccountControllerPodaci.ValidniPodaci();
 
         // Act
         var rezultat = (ViewResult)await _controller.Register(p[0], p[1], p[2], p[3], lozinka, potvrdiLozinku);
@@ -262,34 +353,68 @@ public class AccountControllerTests
         Assert.AreEqual(ocekivanaPoruka, rezultat.ViewData["Greška"]);
     }
 
+    // ─── Register (POST): uspješna registracija ───────────────────────────
+
     [TestMethod]
-    [DynamicData(nameof(Registracija), DynamicDataSourceType.Method)]
+    [DynamicData(nameof(AccountControllerPodaci.Registracija), typeof(AccountControllerPodaci), DynamicDataSourceType.Method)]
     [TestCategory("DataDriven"), TestCategory("Mock")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
-    public async Task Register_IspravniPodaci_KreiraPacijentaIPrijavljuje(
+    public async Task Register_IspravniPodaci_KreiraKorisnikaSEmailomKaoKorisnickimImenom(
         string ime, string prezime, string email, string lozinka, string ocekivanaUloga, string ocekivanaAkcija, string ocekivaniKontroler)
     {
         // Arrange
-        _userManager.Setup(u => u.CreateAsync(It.IsAny<Korisnik>(), lozinka)).ReturnsAsync(IdentityResult.Success);
+        AccountControllerPodaci.RegistracijaUspijeva(_userManager, lozinka);
 
         // Act
         await _controller.Register(ime, prezime, email, string.Empty, lozinka, lozinka);
 
         // Assert
         _userManager.Verify(u => u.CreateAsync(It.Is<Korisnik>(k => k.Email == email && k.UserName == email && k.Ime == ime), lozinka), Times.Once);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(AccountControllerPodaci.Registracija), typeof(AccountControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Fatih Crljenkovic")]
+    public async Task Register_IspravniPodaci_DodajeUloguPacijent(
+        string ime, string prezime, string email, string lozinka, string ocekivanaUloga, string ocekivanaAkcija, string ocekivaniKontroler)
+    {
+        // Arrange
+        AccountControllerPodaci.RegistracijaUspijeva(_userManager, lozinka);
+
+        // Act
+        await _controller.Register(ime, prezime, email, string.Empty, lozinka, lozinka);
+
+        // Assert
         _userManager.Verify(u => u.AddToRoleAsync(It.Is<Korisnik>(k => k.Email == email), ocekivanaUloga), Times.Once);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(AccountControllerPodaci.Registracija), typeof(AccountControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Fatih Crljenkovic")]
+    public async Task Register_IspravniPodaci_PrijavljujeNovogKorisnika(
+        string ime, string prezime, string email, string lozinka, string ocekivanaUloga, string ocekivanaAkcija, string ocekivaniKontroler)
+    {
+        // Arrange
+        AccountControllerPodaci.RegistracijaUspijeva(_userManager, lozinka);
+
+        // Act
+        await _controller.Register(ime, prezime, email, string.Empty, lozinka, lozinka);
+
+        // Assert
         _signInManager.Verify(s => s.SignInAsync(It.Is<Korisnik>(k => k.Email == email), false, null), Times.Once);
     }
 
     [TestMethod]
-    [DynamicData(nameof(Registracija), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [DynamicData(nameof(AccountControllerPodaci.Registracija), typeof(AccountControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
     public async Task Register_IspravniPodaci_PreusmjeravaNaPocetnu(
         string ime, string prezime, string email, string lozinka, string ocekivanaUloga, string ocekivanaAkcija, string ocekivaniKontroler)
     {
         // Arrange
-        _userManager.Setup(u => u.CreateAsync(It.IsAny<Korisnik>(), lozinka)).ReturnsAsync(IdentityResult.Success);
+        AccountControllerPodaci.RegistracijaUspijeva(_userManager, lozinka);
 
         // Act
         var rezultat = (RedirectToActionResult)await _controller.Register(ime, prezime, email, string.Empty, lozinka, lozinka);
@@ -300,14 +425,14 @@ public class AccountControllerTests
     }
 
     [TestMethod]
-    [DynamicData(nameof(Telefon), DynamicDataSourceType.Method)]
+    [DynamicData(nameof(AccountControllerPodaci.Telefon), typeof(AccountControllerPodaci), DynamicDataSourceType.Method)]
     [TestCategory("DataDriven"), TestCategory("Mock")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
     public async Task Register_PrazanIliUnesenTelefon_SnimaTelefonIliNull(string email, string lozinka, string telefon, string? ocekivaniTelefon)
     {
         // Arrange
-        var p = ValidniPodaci();
-        _userManager.Setup(u => u.CreateAsync(It.IsAny<Korisnik>(), lozinka)).ReturnsAsync(IdentityResult.Success);
+        var p = AccountControllerPodaci.ValidniPodaci();
+        AccountControllerPodaci.RegistracijaUspijeva(_userManager, lozinka);
 
         // Act
         await _controller.Register(p[0], p[1], email, telefon, lozinka, lozinka);
@@ -316,50 +441,67 @@ public class AccountControllerTests
         _userManager.Verify(u => u.CreateAsync(It.Is<Korisnik>(k => k.PhoneNumber == ocekivaniTelefon), lozinka), Times.Once);
     }
 
+    // ─── Register (POST): greške iz Identity-ja ───────────────────────────
+
     [TestMethod]
-    [DynamicData(nameof(GreskeRegistracije), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [DynamicData(nameof(AccountControllerPodaci.GreskeRegistracije), typeof(AccountControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Izuzetak")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
     public async Task Register_IdentityVratiGresku_PrikazujePrevedenuPoruku(string kodGreske, string opisGreske, string ocekivanaPoruka)
     {
         // Arrange
-        RegistracijaVracaGreske(new IdentityError { Code = kodGreske, Description = opisGreske });
+        AccountControllerPodaci.RegistracijaVracaGreske(_userManager, new IdentityError { Code = kodGreske, Description = opisGreske });
 
         // Act
-        var rezultat = (ViewResult)await RegistrujValidnogKorisnika();
+        var rezultat = (ViewResult)await AccountControllerPodaci.RegistrujValidnogKorisnika(_controller);
 
         // Assert
         Assert.AreEqual(ocekivanaPoruka, rezultat.ViewData["Greška"]);
     }
 
     [TestMethod]
-    [DynamicData(nameof(GreskeRegistracije), DynamicDataSourceType.Method)]
+    [DynamicData(nameof(AccountControllerPodaci.GreskeRegistracije), typeof(AccountControllerPodaci), DynamicDataSourceType.Method)]
     [TestCategory("DataDriven"), TestCategory("Mock")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
-    public async Task Register_IdentityVratiGresku_NeDodajeUloguINePrijavljuje(string kodGreske, string opisGreske, string ocekivanaPoruka)
+    public async Task Register_IdentityVratiGresku_NeDodajeUlogu(string kodGreske, string opisGreske, string ocekivanaPoruka)
     {
         // Arrange
-        RegistracijaVracaGreske(new IdentityError { Code = kodGreske, Description = opisGreske });
+        AccountControllerPodaci.RegistracijaVracaGreske(_userManager, new IdentityError { Code = kodGreske, Description = opisGreske });
 
         // Act
-        await RegistrujValidnogKorisnika();
+        await AccountControllerPodaci.RegistrujValidnogKorisnika(_controller);
 
         // Assert
         _userManager.Verify(u => u.AddToRoleAsync(It.IsAny<Korisnik>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(AccountControllerPodaci.GreskeRegistracije), typeof(AccountControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Fatih Crljenkovic")]
+    public async Task Register_IdentityVratiGresku_NePrijavljujeKorisnika(string kodGreske, string opisGreske, string ocekivanaPoruka)
+    {
+        // Arrange
+        AccountControllerPodaci.RegistracijaVracaGreske(_userManager, new IdentityError { Code = kodGreske, Description = opisGreske });
+
+        // Act
+        await AccountControllerPodaci.RegistrujValidnogKorisnika(_controller);
+
+        // Assert
         _signInManager.Verify(s => s.SignInAsync(It.IsAny<Korisnik>(), It.IsAny<bool>(), It.IsAny<string>()), Times.Never);
     }
 
     [TestMethod]
-    [DynamicData(nameof(ViseGresaka), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [DynamicData(nameof(AccountControllerPodaci.ViseGresaka), typeof(AccountControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Izuzetak")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
     public async Task Register_ViseGresaka_SpajaPorukeURazmakom(IdentityError[] greske, string ocekivanaPoruka)
     {
         // Arrange
-        RegistracijaVracaGreske(greske);
+        AccountControllerPodaci.RegistracijaVracaGreske(_userManager, greske);
 
         // Act
-        var rezultat = (ViewResult)await RegistrujValidnogKorisnika();
+        var rezultat = (ViewResult)await AccountControllerPodaci.RegistrujValidnogKorisnika(_controller);
 
         // Assert
         Assert.AreEqual(ocekivanaPoruka, rezultat.ViewData["Greška"]);
