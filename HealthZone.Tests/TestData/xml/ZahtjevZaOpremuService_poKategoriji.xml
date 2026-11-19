@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<filteri>
+  <filter><kategorija>Dijagnosticka</kategorija><ocekivaniBroj>3</ocekivaniBroj></filter>
+  <filter><kategorija>Hirurska</kategorija><ocekivaniBroj>1</ocekivaniBroj></filter>
+  <filter><kategorija>Laboratorijska</kategorija><ocekivaniBroj>2</ocekivaniBroj></filter>
+  <filter><kategorija>Rehabilitacijska</kategorija><ocekivaniBroj>1</ocekivaniBroj></filter>
+</filteri>

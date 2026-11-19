@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<scenariji>
+  <scenarij>
+    <korisnik><id>doktor-1</id><specijalizacija>Kardiologija</specijalizacija></korisnik>
+    <korisnik><id>doktor-2</id><specijalizacija>Pedijatrija</specijalizacija></korisnik>
+    <korisnik><id>pacijent-1</id><specijalizacija></specijalizacija></korisnik>
+    <korisnik><id>sestra-1</id><specijalizacija></specijalizacija></korisnik>
+    <ocekivaniBrojDoktora>2</ocekivaniBrojDoktora>
+  </scenarij>
+  <scenarij>
+    <korisnik><id>pacijent-1</id><specijalizacija></specijalizacija></korisnik>
+    <ocekivaniBrojDoktora>0</ocekivaniBrojDoktora>
+  </scenarij>
+</scenariji>

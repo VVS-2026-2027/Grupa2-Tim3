@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<zahtjevi>
+  <zahtjev><id>1</id><naziv>Rendgen aparat</naziv><doktorId>doktor-1</doktorId><status>NaCekanju</status><kategorija>Dijagnosticka</kategorija><hitnost>Visok</hitnost></zahtjev>
+  <zahtjev><id>2</id><naziv>Set skalpela</naziv><doktorId>doktor-1</doktorId><status>Potvrdjen</status><kategorija>Hirurska</kategorija><hitnost>Srednji</hitnost></zahtjev>
+  <zahtjev><id>3</id><naziv>Mikroskop</naziv><doktorId>doktor-2</doktorId><status>NaCekanju</status><kategorija>Laboratorijska</kategorija><hitnost>Nizak</hitnost></zahtjev>
+  <zahtjev><id>4</id><naziv>Centrifuga</naziv><doktorId>doktor-2</doktorId><status>Otkazan</status><kategorija>Laboratorijska</kategorija><hitnost>Hitno</hitnost></zahtjev>
+  <zahtjev><id>5</id><naziv>Defibrilator</naziv><doktorId>doktor-3</doktorId><status>NaCekanju</status><kategorija>Dijagnosticka</kategorija><hitnost>Hitno</hitnost></zahtjev>
+  <zahtjev><id>6</id><naziv>Traka za trčanje</naziv><doktorId>doktor-3</doktorId><status>NaCekanju</status><kategorija>Rehabilitacijska</kategorija><hitnost>Srednji</hitnost></zahtjev>
+  <zahtjev><id>7</id><naziv>EKG uređaj</naziv><doktorId>doktor-1</doktorId><status>Potvrdjen</status><kategorija>Dijagnosticka</kategorija><hitnost>Visok</hitnost></zahtjev>
+</zahtjevi>

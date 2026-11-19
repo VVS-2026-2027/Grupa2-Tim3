@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<scenariji>
+  <!-- Samo zahtjevi NaCekanju, od najhitnijeg prema najmanje hitnom -->
+  <scenarij><ocekivaniRedoslijedId>5,1,6,3</ocekivaniRedoslijedId></scenarij>
+</scenariji>
