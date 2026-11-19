@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Doktori kojima pripada lista čekanja. -->
+<doktori>
+  <doktor><id>d-1</id><ime>Amra</ime><prezime>Hodžić</prezime></doktor>
+  <doktor><id>d-2</id><ime>Kenan</ime><prezime>Begić</prezime></doktor>
+</doktori>
