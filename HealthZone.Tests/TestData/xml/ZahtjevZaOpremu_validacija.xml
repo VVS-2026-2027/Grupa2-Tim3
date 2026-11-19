@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Element koji nedostaje znači da polje nije uneseno (null). Više očekivanih grešaka se razdvaja znakom | -->
+<scenariji>
+  <scenarij><naziv>Rendgen aparat</naziv><opis>Stari aparat je pokvaren</opis><doktorId>doktor-1</doktorId><ocekivaneGreske></ocekivaneGreske></scenarij>
+  <scenarij><opis>Stari aparat je pokvaren</opis><doktorId>doktor-1</doktorId><ocekivaneGreske>Polje Naziv je obavezno.</ocekivaneGreske></scenarij>
+  <scenarij><naziv>Rendgen aparat</naziv><opis></opis><doktorId>doktor-1</doktorId><ocekivaneGreske>Polje Opis je obavezno.</ocekivaneGreske></scenarij>
+  <scenarij><naziv>Rendgen aparat</naziv><opis>Stari aparat je pokvaren</opis><ocekivaneGreske>Polje Doktor je obavezno.</ocekivaneGreske></scenarij>
+  <scenarij><ocekivaneGreske>Polje Naziv je obavezno.|Polje Opis je obavezno.|Polje Doktor je obavezno.</ocekivaneGreske></scenarij>
+</scenariji>
