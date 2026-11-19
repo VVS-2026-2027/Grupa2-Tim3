@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Termin 6 u TerminService_termini.xml ima status Otkazan. -->
+<scenariji>
+  <potvrda><terminId>6</terminId><poruka>Otkazani termin se ne može potvrditi.</poruka></potvrda>
+  <otkazivanje><terminId>6</terminId><poruka>Termin je već otkazan.</poruka></otkazivanje>
+  <promjena><terminId>6</terminId><poruka>Ne možete mijenjati otkazani termin.</poruka></promjena>
+</scenariji>

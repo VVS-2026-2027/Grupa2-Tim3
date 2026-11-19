@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<scenariji>
+  <potvrda><terminId>3</terminId><ocekivaniStatus>Potvrdjen</ocekivaniStatus></potvrda>
+  <potvrda><terminId>2</terminId><ocekivaniStatus>Potvrdjen</ocekivaniStatus></potvrda>
+  <aktivacija><terminId>1</terminId><ocekivaniStatus>Aktivan</ocekivaniStatus></aktivacija>
+  <aktivacija><terminId>3</terminId><ocekivaniStatus>Aktivan</ocekivaniStatus></aktivacija>
+</scenariji>

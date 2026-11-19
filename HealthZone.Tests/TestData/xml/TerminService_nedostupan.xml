@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<scenariji>
+  <zakazivanje>
+    <doktorId>dr-1</doktorId><pomakDana>3</pomakDana><sat>9</sat>
+    <poruka>Odabrani termin nije dostupan.</poruka>
+  </zakazivanje>
+  <promjena>
+    <terminId>1</terminId><pomakDana>3</pomakDana><sat>9</sat>
+    <poruka>Novi termin nije dostupan.</poruka>
+  </promjena>
+</scenariji>

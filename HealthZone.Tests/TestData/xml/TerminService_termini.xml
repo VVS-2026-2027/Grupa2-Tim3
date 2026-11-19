@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- "Baza" termina koju vraća mock ITerminRepository. pomakDana je broj dana od danas. -->
+<termini>
+  <termin>
+    <id>1</id><doktorId>dr-1</doktorId><doktorIme>Amar</doktorIme><doktorPrezime>Hodzic</doktorPrezime>
+    <pacijentId>pac-1</pacijentId><email>pac1@test.ba</email>
+    <pomakDana>1</pomakDana><sat>9</sat><status>Potvrdjen</status>
+  </termin>
+  <termin>
+    <id>2</id><doktorId>dr-1</doktorId><pacijentId>pac-2</pacijentId><email>pac2@test.ba</email>
+    <pomakDana>1</pomakDana><sat>10</sat><status>Potvrdjen</status>
+  </termin>
+  <termin>
+    <id>3</id><doktorId>dr-1</doktorId><pacijentId>pac-1</pacijentId><email>pac1@test.ba</email>
+    <pomakDana>1</pomakDana><sat>11</sat><status>NaCekanju</status>
+  </termin>
+  <termin>
+    <id>4</id><doktorId>dr-2</doktorId><pacijentId>pac-3</pacijentId><email></email>
+    <pomakDana>1</pomakDana><sat>9</sat><status>Potvrdjen</status>
+  </termin>
+  <termin>
+    <id>5</id><doktorId>dr-1</doktorId><pacijentId>pac-1</pacijentId><email>pac1@test.ba</email>
+    <pomakDana>3</pomakDana><sat>9</sat><status>Potvrdjen</status>
+  </termin>
+  <termin>
+    <id>6</id><doktorId>dr-1</doktorId><pacijentId>pac-2</pacijentId><email>pac2@test.ba</email>
+    <pomakDana>3</pomakDana><sat>10</sat><status>Otkazan</status>
+  </termin>
+</termini>

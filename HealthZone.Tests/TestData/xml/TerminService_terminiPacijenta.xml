@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<scenariji>
+  <scenarij><pacijentId>pac-1</pacijentId><ocekivaniBroj>3</ocekivaniBroj><ocekivaniPrviId>5</ocekivaniPrviId></scenarij>
+  <scenarij><pacijentId>pac-2</pacijentId><ocekivaniBroj>2</ocekivaniBroj><ocekivaniPrviId>6</ocekivaniPrviId></scenarij>
+  <scenarij><pacijentId>pac-3</pacijentId><ocekivaniBroj>1</ocekivaniBroj><ocekivaniPrviId>4</ocekivaniPrviId></scenarij>
+</scenariji>

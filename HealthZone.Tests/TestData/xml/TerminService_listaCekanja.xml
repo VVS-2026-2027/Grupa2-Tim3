@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Kad se termin otkaže, obavještava se prvi na listi čekanja istog doktora:
+     prvo po prioritetu (Visok > Srednji > Nizak), pa po najranijem datumu upisa. -->
+<scenariji>
+  <scenarij>
+    <terminId>1</terminId>
+    <kandidat><email>nizak@test.ba</email><prioritet>Nizak</prioritet><doktorId>dr-1</doktorId><pomakDana>-10</pomakDana></kandidat>
+    <kandidat><email>visok@test.ba</email><prioritet>Visok</prioritet><doktorId>dr-1</doktorId><pomakDana>-1</pomakDana></kandidat>
+    <kandidat><email>drugidoktor@test.ba</email><prioritet>Visok</prioritet><doktorId>dr-2</doktorId><pomakDana>-20</pomakDana></kandidat>
+    <ocekivaniEmail>visok@test.ba</ocekivaniEmail>
+  </scenarij>
+  <scenarij>
+    <terminId>2</terminId>
+    <kandidat><email>kasniji@test.ba</email><prioritet>Srednji</prioritet><doktorId>dr-1</doktorId><pomakDana>-3</pomakDana></kandidat>
+    <kandidat><email>raniji@test.ba</email><prioritet>Srednji</prioritet><doktorId>dr-1</doktorId><pomakDana>-7</pomakDana></kandidat>
+    <ocekivaniEmail>raniji@test.ba</ocekivaniEmail>
+  </scenarij>
+</scenariji>
