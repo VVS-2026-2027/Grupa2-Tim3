@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Stavka liste: lista (s doktorom) i pacijent na njoj. -->
+<stavke>
+  <stavka><listaId>1</listaId><doktorId>d-1</doktorId><korisnikId>p-1</korisnikId></stavka>
+  <stavka><listaId>2</listaId><doktorId>d-2</doktorId><korisnikId>p-2</korisnikId></stavka>
+</stavke>
