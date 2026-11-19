@@ -1,0 +1,9 @@
+pacijentId;doktorId;ljubaznost;profesionalnost;usluga;ocekivaneGreske
+pacijent-1;doktor-1;5;4;3;
+pacijent-1;doktor-1;1;1;1;
+pacijent-1;doktor-1;0;4;3;Ocjena ljubaznosti mora biti između 1 i 5.
+pacijent-1;doktor-1;5;6;3;Ocjena profesionalnosti mora biti između 1 i 5.
+pacijent-1;doktor-1;5;4;-1;Ocjena usluge mora biti između 1 i 5.
+;doktor-1;5;4;3;Polje Pacijent je obavezno.
+pacijent-1;;5;4;3;Polje Doktor je obavezno.
+pacijent-1;doktor-1;0;0;0;Ocjena ljubaznosti mora biti između 1 i 5.|Ocjena profesionalnosti mora biti između 1 i 5.|Ocjena usluge mora biti između 1 i 5.
