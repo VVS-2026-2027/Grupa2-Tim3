@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Korisnici koji se prije svakog testa upisuju u InMemory bazu. -->
+<baza>
+  <korisnik id="k-1" ime="Amra" prezime="Hodžić" email="amra.hodzic@mail.ba" />
+  <korisnik id="k-2" ime="Kenan" prezime="Begić" email="kenan.begic@mail.ba" />
+  <korisnik id="k-3" ime="Lejla" prezime="Mušić" email="lejla.music@mail.ba" />
+</baza>

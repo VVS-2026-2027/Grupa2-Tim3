@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pacijenti, usluge, termini i nalazi koji se prije svakog testa upisuju u InMemory bazu. -->
+<baza>
+  <korisnici>
+    <korisnik id="p-1" ime="Amra" prezime="Hodžić" />
+    <korisnik id="p-2" ime="Kenan" prezime="Begić" />
+  </korisnici>
+  <usluge>
+    <usluga id="1" naziv="Kardiološki pregled" opis="Pregled srca i EKG" vrsta="Kardiologija" cijena="80.00" />
+    <usluga id="2" naziv="Pedijatrijski pregled" opis="Opći pregled djeteta" vrsta="Pedijatrija" cijena="50.00" />
+  </usluge>
+  <termini>
+    <termin id="1" doktor="d-1" pacijent="p-1" usluga="1" pomakDana="-3" />
+    <termin id="2" doktor="d-2" pacijent="p-2" usluga="2" pomakDana="-2" />
+    <termin id="3" doktor="d-1" pacijent="p-1" usluga="1" pomakDana="-1" />
+  </termini>
+  <nalazi>
+    <nalaz id="1" termin="1" pacijent="p-1" opis="Kontrolni pregled srca" dijagnoza="Hipertenzija" terapija="Beta blokatori" />
+    <nalaz id="2" termin="2" pacijent="p-2" opis="Pregled djeteta" dijagnoza="Upala uha" terapija="Antibiotik 7 dana" />
+  </nalazi>
+</baza>
