@@ -400,6 +400,8 @@ public class TerminServiceTests
     [TestProperty("Autor", "Irhad Brescic")]
     public async Task ZakaziTerminAsync_RazliciteInformacijeOTerminu_SaljePotvrduSamoAkoPacijentImaEmail(Termin termin, int ocekivaniBrojMailova)
     {
+        // Arrange (mockovi i "baza" termina su pripremljeni u Setup)
+
         // Act
         await _servis.ZakaziTerminAsync(termin);
 
@@ -437,6 +439,8 @@ public class TerminServiceTests
     [TestProperty("Autor", "Irhad Brescic")]
     public async Task OznaciKaoPotvrdjenAsync_TerminNePostoji_BacaException(int terminId, string ocekivanaPoruka)
     {
+        // Arrange (mockovi i "baza" termina su pripremljeni u Setup)
+
         // Act
         var izuzetak = await Assert.ThrowsExceptionAsync<Exception>(() => _servis.OznaciKaoPotvrdjenAsync(terminId));
 
@@ -450,6 +454,8 @@ public class TerminServiceTests
     [TestProperty("Autor", "Irhad Brescic")]
     public async Task OznaciKaoPotvrdjenAsync_TerminOtkazan_BacaException(int terminId, string ocekivanaPoruka)
     {
+        // Arrange (mockovi i "baza" termina su pripremljeni u Setup)
+
         // Act
         var izuzetak = await Assert.ThrowsExceptionAsync<Exception>(() => _servis.OznaciKaoPotvrdjenAsync(terminId));
 
@@ -463,6 +469,8 @@ public class TerminServiceTests
     [TestProperty("Autor", "Irhad Brescic")]
     public async Task OznaciKaoPotvrdjenAsync_TerminPostoji_SpremaStatusPotvrdjen(int terminId, Status ocekivaniStatus)
     {
+        // Arrange (mockovi i "baza" termina su pripremljeni u Setup)
+
         // Act
         await _servis.OznaciKaoPotvrdjenAsync(terminId);
 
@@ -476,6 +484,8 @@ public class TerminServiceTests
     [TestProperty("Autor", "Irhad Brescic")]
     public async Task OznaciKaoPotvrdjenAsync_TerminPostoji_KreiraNotifikaciju(int terminId)
     {
+        // Arrange (mockovi i "baza" termina su pripremljeni u Setup)
+
         // Act
         await _servis.OznaciKaoPotvrdjenAsync(terminId);
 
@@ -491,6 +501,8 @@ public class TerminServiceTests
     [TestProperty("Autor", "Irhad Brescic")]
     public async Task OznaciKaoAktivanAsync_TerminNePostoji_BacaException(int terminId, string ocekivanaPoruka)
     {
+        // Arrange (mockovi i "baza" termina su pripremljeni u Setup)
+
         // Act
         var izuzetak = await Assert.ThrowsExceptionAsync<Exception>(() => _servis.OznaciKaoAktivanAsync(terminId));
 
@@ -504,6 +516,8 @@ public class TerminServiceTests
     [TestProperty("Autor", "Irhad Brescic")]
     public async Task OznaciKaoAktivanAsync_TerminPostoji_SpremaStatusAktivan(int terminId, Status ocekivaniStatus)
     {
+        // Arrange (mockovi i "baza" termina su pripremljeni u Setup)
+
         // Act
         await _servis.OznaciKaoAktivanAsync(terminId);
 
@@ -517,6 +531,8 @@ public class TerminServiceTests
     [TestProperty("Autor", "Irhad Brescic")]
     public async Task OznaciKaoAktivanAsync_TerminPostoji_SnimaPromjene(int terminId)
     {
+        // Arrange (mockovi i "baza" termina su pripremljeni u Setup)
+
         // Act
         await _servis.OznaciKaoAktivanAsync(terminId);
 
@@ -532,6 +548,8 @@ public class TerminServiceTests
     [TestProperty("Autor", "Irhad Brescic")]
     public async Task OtkaziTerminAsync_TerminNePostoji_BacaException(int terminId, string ocekivanaPoruka)
     {
+        // Arrange (mockovi i "baza" termina su pripremljeni u Setup)
+
         // Act
         var izuzetak = await Assert.ThrowsExceptionAsync<Exception>(() => _servis.OtkaziTerminAsync(terminId));
 
@@ -545,6 +563,8 @@ public class TerminServiceTests
     [TestProperty("Autor", "Irhad Brescic")]
     public async Task OtkaziTerminAsync_TerminVecOtkazan_BacaException(int terminId, string ocekivanaPoruka)
     {
+        // Arrange (mockovi i "baza" termina su pripremljeni u Setup)
+
         // Act
         var izuzetak = await Assert.ThrowsExceptionAsync<Exception>(() => _servis.OtkaziTerminAsync(terminId));
 
@@ -559,6 +579,8 @@ public class TerminServiceTests
     [Priority(1)]
     public async Task OtkaziTerminAsync_TerminPostoji_PostavljaStatusOtkazan(int terminId, Status ocekivaniStatus)
     {
+        // Arrange (mockovi i "baza" termina su pripremljeni u Setup)
+
         // Act
         await _servis.OtkaziTerminAsync(terminId);
 
@@ -572,6 +594,8 @@ public class TerminServiceTests
     [TestProperty("Autor", "Irhad Brescic")]
     public async Task OtkaziTerminAsync_PacijentImaEmail_SaljeEmailOOtkazu(int terminId)
     {
+        // Arrange (mockovi i "baza" termina su pripremljeni u Setup)
+
         // Act
         await _servis.OtkaziTerminAsync(terminId);
 
@@ -586,6 +610,8 @@ public class TerminServiceTests
     [TestProperty("Autor", "Irhad Brescic")]
     public async Task OtkaziTerminAsync_PacijentNemaEmail_NeSaljeEmailOOtkazu(int terminId)
     {
+        // Arrange (mockovi i "baza" termina su pripremljeni u Setup)
+
         // Act
         await _servis.OtkaziTerminAsync(terminId);
 
@@ -619,6 +645,8 @@ public class TerminServiceTests
     [TestProperty("Autor", "Irhad Brescic")]
     public async Task OtkaziTerminAsync_ListaCekanjaPrazna_NeSaljeObavjestenjeListe(int terminId)
     {
+        // Arrange (mockovi i "baza" termina su pripremljeni u Setup)
+
         // Act
         await _servis.OtkaziTerminAsync(terminId);
 
@@ -654,6 +682,8 @@ public class TerminServiceTests
     [TestProperty("Autor", "Irhad Brescic")]
     public async Task PromijeniTerminAsync_TerminNePostoji_BacaException(int terminId, string ocekivanaPoruka)
     {
+        // Arrange (mockovi i "baza" termina su pripremljeni u Setup)
+
         // Act
         var izuzetak = await Assert.ThrowsExceptionAsync<Exception>(
             () => _servis.PromijeniTerminAsync(terminId, default, default));
@@ -668,6 +698,8 @@ public class TerminServiceTests
     [TestProperty("Autor", "Irhad Brescic")]
     public async Task PromijeniTerminAsync_TerminOtkazan_BacaException(int terminId, string ocekivanaPoruka)
     {
+        // Arrange (mockovi i "baza" termina su pripremljeni u Setup)
+
         // Act
         var izuzetak = await Assert.ThrowsExceptionAsync<Exception>(
             () => _servis.PromijeniTerminAsync(terminId, default, default));
@@ -699,6 +731,8 @@ public class TerminServiceTests
     [TestProperty("Autor", "Irhad Brescic")]
     public async Task PromijeniTerminAsync_NoviTerminZauzet_BacaException(int terminId, int pomakDana, int sat, string ocekivanaPoruka)
     {
+        // Arrange (mockovi i "baza" termina su pripremljeni u Setup)
+
         // Act
         var izuzetak = await Assert.ThrowsExceptionAsync<Exception>(
             () => _servis.PromijeniTerminAsync(terminId, DateTime.Today.AddDays(pomakDana), new TimeOnly(sat, 0)));
@@ -745,6 +779,8 @@ public class TerminServiceTests
     [TestProperty("Autor", "Irhad Brescic")]
     public async Task PromijeniTerminAsync_NoviTerminSlobodan_PostavljaStatusPotvrdjen(int terminId, int pomakDana, int sat, Status ocekivaniStatus)
     {
+        // Arrange (mockovi i "baza" termina su pripremljeni u Setup)
+
         // Act
         await _servis.PromijeniTerminAsync(terminId, DateTime.Today.AddDays(pomakDana), new TimeOnly(sat, 0));
 
@@ -758,6 +794,8 @@ public class TerminServiceTests
     [TestProperty("Autor", "Irhad Brescic")]
     public async Task PromijeniTerminAsync_NoviTerminSlobodan_SpremaIzmjenuURepozitorij(int terminId, int pomakDana, int sat)
     {
+        // Arrange (mockovi i "baza" termina su pripremljeni u Setup)
+
         // Act
         await _servis.PromijeniTerminAsync(terminId, DateTime.Today.AddDays(pomakDana), new TimeOnly(sat, 0));
 
@@ -773,6 +811,8 @@ public class TerminServiceTests
     [TestProperty("Autor", "Irhad Brescic")]
     public async Task IsTerminDostupanAsync_RazliciteKombinacije_VracaOcekivano(string doktorId, int pomakDana, int sat, bool ocekivano)
     {
+        // Arrange (mockovi i "baza" termina su pripremljeni u Setup)
+
         // Act
         var rezultat = await _servis.IsTerminDostupanAsync(doktorId, DateTime.Today.AddDays(pomakDana), new TimeOnly(sat, 0));
 
@@ -787,6 +827,8 @@ public class TerminServiceTests
     [Timeout(2000)]
     public async Task GetSlobodniTerminiAsync_DoktorImaZauzeteTermine_VracaSamoSlobodne(string doktorId, int pomakDana, int ocekivaniBroj)
     {
+        // Arrange (mockovi i "baza" termina su pripremljeni u Setup)
+
         // Act
         var rezultat = await _servis.GetSlobodniTerminiAsync(doktorId, DateTime.Today.AddDays(pomakDana));
 
@@ -800,6 +842,8 @@ public class TerminServiceTests
     [TestProperty("Autor", "Irhad Brescic")]
     public async Task GetTerminiDoktoraAsync_SaDatumom_VracaTermineSamoTogDana(string doktorId, int pomakDana, int ocekivaniBroj)
     {
+        // Arrange (mockovi i "baza" termina su pripremljeni u Setup)
+
         // Act
         var rezultat = await _servis.GetTerminiDoktoraAsync(doktorId, DateTime.Today.AddDays(pomakDana));
 
@@ -813,6 +857,8 @@ public class TerminServiceTests
     [TestProperty("Autor", "Irhad Brescic")]
     public async Task GetTerminiDoktoraAsync_BezDatuma_VracaSveTermineDoktora(string doktorId, int ocekivaniBroj)
     {
+        // Arrange (mockovi i "baza" termina su pripremljeni u Setup)
+
         // Act
         var rezultat = await _servis.GetTerminiDoktoraAsync(doktorId);
 
@@ -826,6 +872,8 @@ public class TerminServiceTests
     [TestProperty("Autor", "Irhad Brescic")]
     public async Task GetTerminiPacijentaAsync_PacijentImaTermine_VracaSveNjegoveTermine(string pacijentId, int ocekivaniBroj)
     {
+        // Arrange (mockovi i "baza" termina su pripremljeni u Setup)
+
         // Act
         var rezultat = await _servis.GetTerminiPacijentaAsync(pacijentId);
 
@@ -839,6 +887,8 @@ public class TerminServiceTests
     [TestProperty("Autor", "Irhad Brescic")]
     public async Task GetTerminiPacijentaAsync_PacijentImaTermine_PrviJeNajnoviji(string pacijentId, int ocekivaniPrviId)
     {
+        // Arrange (mockovi i "baza" termina su pripremljeni u Setup)
+
         // Act
         var rezultat = await _servis.GetTerminiPacijentaAsync(pacijentId);
 
@@ -855,6 +905,8 @@ public class TerminServiceTests
     [Priority(1)]
     public async Task PosaljiPodsjetnikeSutraAsync_PostojeSutrasnjiPotvrdjeniTermini_SaljeMailZaSvaki(int ocekivaniBroj)
     {
+        // Arrange (mockovi i "baza" termina su pripremljeni u Setup)
+
         // Act
         await _servis.PošaljiPodsjetnikeSutraAsync();
 
@@ -890,6 +942,8 @@ public class TerminServiceTests
     [TestProperty("Autor", "Irhad Brescic")]
     public async Task KreirajNotifikacijuAsync_IspravniPodaci_SpremaNotifikacijuSaTacnimPodacima(int terminId, string poruka, Status status)
     {
+        // Arrange (mockovi i "baza" termina su pripremljeni u Setup)
+
         // Act
         await _servis.KreirajNotifikacijuAsync(terminId, poruka, status);
 
@@ -904,6 +958,8 @@ public class TerminServiceTests
     [TestProperty("Autor", "Irhad Brescic")]
     public async Task KreirajNotifikacijuAsync_IspravniPodaci_SnimaPromjene(int terminId, string poruka, Status status)
     {
+        // Arrange (mockovi i "baza" termina su pripremljeni u Setup)
+
         // Act
         await _servis.KreirajNotifikacijuAsync(terminId, poruka, status);
 
@@ -919,6 +975,8 @@ public class TerminServiceTests
     [TestProperty("Autor", "Irhad Brescic")]
     public async Task GetByIdAsync_TerminPostoji_VracaTerminSaTimId(int terminId)
     {
+        // Arrange (mockovi i "baza" termina su pripremljeni u Setup)
+
         // Act
         var rezultat = await _servis.GetByIdAsync(terminId);
 
@@ -932,6 +990,8 @@ public class TerminServiceTests
     [TestProperty("Autor", "Irhad Brescic")]
     public async Task GetByIdAsync_TerminPostoji_PozivaRepozitorij(int terminId)
     {
+        // Arrange (mockovi i "baza" termina su pripremljeni u Setup)
+
         // Act
         await _servis.GetByIdAsync(terminId);
 
@@ -945,6 +1005,8 @@ public class TerminServiceTests
     [TestProperty("Autor", "Irhad Brescic")]
     public async Task GetAllAsync_RepozitorijImaTermine_VracaSveTermine(int ocekivaniBroj)
     {
+        // Arrange (mockovi i "baza" termina su pripremljeni u Setup)
+
         // Act
         var rezultat = await _servis.GetAllAsync();
 
