@@ -1,19 +1,18 @@
-<?xml version="1.0" encoding="utf-8" ?>
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Minute čekanja i očekivani tekst. Atribut "pravilo" kaže koje pravilo scenarij provjerava.
+     Vrijednosti 0, 1, 59, 60 i 61 su granice između pravila. -->
 <formati>
-  <scenarij>
-    <minute>60</minute>
-    <ocekivano>1 h</ocekivano>
-  </scenarij>
-  <scenarij>
-    <minute>90</minute>
-    <ocekivano>1 h 30 min</ocekivano>
-  </scenarij>
-  <scenarij>
-    <minute>120</minute>
-    <ocekivano>2 h</ocekivano>
-  </scenarij>
-  <scenarij>
-    <minute>125</minute>
-    <ocekivano>2 h 5 min</ocekivano>
-  </scenarij>
+  <scenarij pravilo="nula"><minute>0</minute><ocekivano>Vi ste sljedeći</ocekivano></scenarij>
+
+  <scenarij pravilo="minute"><minute>1</minute><ocekivano>1 min</ocekivano></scenarij>
+  <scenarij pravilo="minute"><minute>45</minute><ocekivano>45 min</ocekivano></scenarij>
+  <scenarij pravilo="minute"><minute>59</minute><ocekivano>59 min</ocekivano></scenarij>
+
+  <scenarij pravilo="sati"><minute>60</minute><ocekivano>1 h</ocekivano></scenarij>
+  <scenarij pravilo="sati"><minute>120</minute><ocekivano>2 h</ocekivano></scenarij>
+  <scenarij pravilo="sati"><minute>1440</minute><ocekivano>24 h</ocekivano></scenarij>
+
+  <scenarij pravilo="satiIMinute"><minute>61</minute><ocekivano>1 h 1 min</ocekivano></scenarij>
+  <scenarij pravilo="satiIMinute"><minute>90</minute><ocekivano>1 h 30 min</ocekivano></scenarij>
+  <scenarij pravilo="satiIMinute"><minute>125</minute><ocekivano>2 h 5 min</ocekivano></scenarij>
 </formati>
