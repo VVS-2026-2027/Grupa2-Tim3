@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Greške koje bacaju zamjenski servisi. Pacijent p-1 zakazuje kod doktora d-1 (termin 1 je njegov). -->
+<greske>
+  <greska><terminId>1</terminId><korisnikId>p-1</korisnikId><uloga>Pacijent</uloga><doktorId>d-1</doktorId>
+    <uslugaId>1</uslugaId><pomakDana>4</pomakDana><sat>9</sat><poruka>Odabrani termin nije dostupan.</poruka></greska>
+  <greska><terminId>1</terminId><korisnikId>p-1</korisnikId><uloga>Pacijent</uloga><doktorId>d-1</doktorId>
+    <uslugaId>2</uslugaId><pomakDana>5</pomakDana><sat>10</sat><poruka>Baza nije dostupna.</poruka></greska>
+</greske>

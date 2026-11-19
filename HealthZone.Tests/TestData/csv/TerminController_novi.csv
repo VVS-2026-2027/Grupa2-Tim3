@@ -1,0 +1,4 @@
+korisnikId;uloga;doktorId;pacijentId;uslugaId;pomakDana;sat;ocekivaniStatus
+p-1;Pacijent;d-1;;1;4;9;NaCekanju
+d-1;Doktor;;p-2;2;4;10;NaCekanju
+a-1;Administrator;d-2;p-3;1;4;11;NaCekanju

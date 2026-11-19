@@ -1,0 +1,4 @@
+korisnikId;uloga;imaDoktore;imaPacijente
+p-1;Pacijent;true;false
+d-1;Doktor;false;true
+a-1;Administrator;true;true

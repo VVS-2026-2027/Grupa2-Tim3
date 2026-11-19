@@ -1,0 +1,7 @@
+pacijentId;korisnikId;uloga;prioritet;ocekivaniRezultat
+p-1;x-9;Doktor;Nizak;UnauthorizedResult
+p-99;d-1;Doktor;Nizak;NotFoundResult
+p-3;d-2;Doktor;Nizak;RedirectToActionResult
+p-1;d-1;Doktor;Srednji;RedirectToActionResult
+p-2;d-1;Doktor;;RedirectToActionResult
+p-1;d-1;Doktor;Nepostojeci;RedirectToActionResult

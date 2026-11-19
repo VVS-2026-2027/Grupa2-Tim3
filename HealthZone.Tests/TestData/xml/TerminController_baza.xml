@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Korisnici, usluge i termini koje vraćaju zamjenski servisi u TerminControllerTests.
+     d-9 i p-9 namjerno ne postoje među korisnicima, a usluga 9 ne postoji među uslugama.
+     Doktor d-2 ima 7 termina istog dana (pomakDana 5), pa mu je taj dan potpuno zauzet. -->
+<baza>
+  <korisnici>
+    <korisnik id="d-1" ime="Amar" prezime="Hodzic" uloga="Doktor" prioritet="" />
+    <korisnik id="d-2" ime="Lejla" prezime="Kovac" uloga="Doktor" prioritet="" />
+    <korisnik id="p-1" ime="Amra" prezime="Begic" uloga="Pacijent" prioritet="Visok" />
+    <korisnik id="p-2" ime="Kenan" prezime="Delic" uloga="Pacijent" prioritet="" />
+    <korisnik id="p-3" ime="Sara" prezime="Imamovic" uloga="Pacijent" prioritet="Nizak" />
+    <korisnik id="a-1" ime="Admin" prezime="Sistema" uloga="Administrator" prioritet="" />
+  </korisnici>
+  <usluge>
+    <usluga id="1" naziv="Opsti pregled" />
+    <usluga id="2" naziv="Kardioloski pregled" />
+  </usluge>
+  <termini>
+    <termin id="1" doktor="d-1" pacijent="p-1" usluga="1" pomakDana="1" vrijeme="09:00" status="Potvrdjen" />
+    <termin id="2" doktor="d-1" pacijent="p-2" usluga="2" pomakDana="2" vrijeme="10:00" status="NaCekanju" />
+    <termin id="3" doktor="d-2" pacijent="p-1" usluga="1" pomakDana="1" vrijeme="09:00" status="Potvrdjen" />
+    <termin id="4" doktor="d-9" pacijent="p-9" usluga="9" pomakDana="3" vrijeme="12:00" status="NaCekanju" />
+    <termin id="5" doktor="d-1" pacijent="p-3" usluga="1" pomakDana="2" vrijeme="11:00" status="Otkazan" />
+    <termin id="6" doktor="d-2" pacijent="p-2" usluga="1" pomakDana="5" vrijeme="08:00" status="NaCekanju" />
+    <termin id="7" doktor="d-2" pacijent="p-2" usluga="1" pomakDana="5" vrijeme="09:00" status="NaCekanju" />
+    <termin id="8" doktor="d-2" pacijent="p-2" usluga="1" pomakDana="5" vrijeme="10:00" status="NaCekanju" />
+    <termin id="9" doktor="d-2" pacijent="p-2" usluga="1" pomakDana="5" vrijeme="11:00" status="NaCekanju" />
+    <termin id="10" doktor="d-2" pacijent="p-2" usluga="1" pomakDana="5" vrijeme="12:00" status="NaCekanju" />
+    <termin id="11" doktor="d-2" pacijent="p-2" usluga="1" pomakDana="5" vrijeme="13:00" status="NaCekanju" />
+    <termin id="12" doktor="d-2" pacijent="p-2" usluga="1" pomakDana="5" vrijeme="14:00" status="NaCekanju" />
+    <termin id="13" doktor="d-1" pacijent="p-9" usluga="1" pomakDana="6" vrijeme="09:00" status="Potvrdjen" />
+  </termini>
+</baza>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Administrator šalje termin koji već ima status, pa se status ne smije promijeniti u NaCekanju. -->
+<scenariji>
+  <scenarij><korisnikId>a-1</korisnikId><uloga>Administrator</uloga><doktorId>d-1</doktorId><pacijentId>p-2</pacijentId>
+    <uslugaId>1</uslugaId><pomakDana>4</pomakDana><sat>12</sat><status>Potvrdjen</status></scenarij>
+</scenariji>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pacijent traži upis na listu čekanja doktora koji ima aktivnu listu. -->
+<scenariji>
+  <scenarij><korisnikId>p-1</korisnikId><uloga>Pacijent</uloga><doktorId>d-1</doktorId><listaId>7</listaId></scenarij>
+  <scenarij><korisnikId>p-3</korisnikId><uloga>Pacijent</uloga><doktorId>d-2</doktorId><listaId>8</listaId></scenarij>
+</scenariji>

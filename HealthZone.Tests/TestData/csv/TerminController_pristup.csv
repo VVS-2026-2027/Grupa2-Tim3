@@ -1,0 +1,8 @@
+id;korisnikId;uloga;rezultatPrikaza;rezultatAkcije
+;a-1;Administrator;NotFoundResult;-
+99;a-1;Administrator;NotFoundResult;NotFoundResult
+1;d-2;Doktor;ForbidResult;ForbidResult
+1;p-2;Pacijent;ForbidResult;ForbidResult
+1;d-1;Doktor;ViewResult;RedirectToActionResult
+1;p-1;Pacijent;ViewResult;RedirectToActionResult
+4;a-1;Administrator;ViewResult;RedirectToActionResult
