@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Pozicija na listi čekanja, trajanje jednog pregleda (min) i očekivano čekanje u minutama. -->
+<scenariji>
+  <scenarij>
+    <pozicija>1</pozicija>
+    <trajanjePregledaMin>15</trajanjePregledaMin>
+    <ocekivaneMinute>0</ocekivaneMinute>
+  </scenarij>
+  <scenarij>
+    <pozicija>1</pozicija>
+    <trajanjePregledaMin>60</trajanjePregledaMin>
+    <ocekivaneMinute>0</ocekivaneMinute>
+  </scenarij>
+  <scenarij>
+    <pozicija>2</pozicija>
+    <trajanjePregledaMin>15</trajanjePregledaMin>
+    <ocekivaneMinute>15</ocekivaneMinute>
+  </scenarij>
+  <scenarij>
+    <pozicija>3</pozicija>
+    <trajanjePregledaMin>45</trajanjePregledaMin>
+    <ocekivaneMinute>90</ocekivaneMinute>
+  </scenarij>
+  <scenarij>
+    <pozicija>5</pozicija>
+    <trajanjePregledaMin>20</trajanjePregledaMin>
+    <ocekivaneMinute>80</ocekivaneMinute>
+  </scenarij>
+  <scenarij>
+    <pozicija>10</pozicija>
+    <trajanjePregledaMin>30</trajanjePregledaMin>
+    <ocekivaneMinute>270</ocekivaneMinute>
+  </scenarij>
+</scenariji>
