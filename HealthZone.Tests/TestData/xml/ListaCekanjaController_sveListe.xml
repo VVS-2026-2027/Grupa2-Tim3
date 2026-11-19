@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Administrator vidi sve liste koje vrati servis. -->
+<scenariji>
+  <scenarij><korisnikId>a-1</korisnikId><uloga>Administrator</uloga><ids>1,2,3</ids></scenarij>
+  <scenarij><korisnikId>a-2</korisnikId><uloga>Administrator</uloga><ids></ids></scenarij>
+</scenariji>

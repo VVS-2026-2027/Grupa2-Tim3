@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Doktori koje servis nudi u padajućoj listi kod izmjene liste čekanja. -->
+<doktori>
+  <doktor id="d-1" ime="Amra" prezime="Hodžić" specijalizacija="Kardiologija" />
+  <doktor id="d-2" ime="Kenan" prezime="Begić" specijalizacija="Pedijatrija" />
+  <doktor id="d-3" ime="Lejla" prezime="Mušić" specijalizacija="Dermatologija" />
+</doktori>

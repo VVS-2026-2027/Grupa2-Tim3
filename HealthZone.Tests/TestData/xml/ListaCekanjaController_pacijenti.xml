@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Stavke svih lista čekanja koje vraća IKorisnikNaListiService. Datum prijave je pomak u danima od danas.
+     Bez atributa prioritet pacijent nema prioritet (računa se kao Nizak); bezKorisnika="true": pacijent nije učitan. -->
+<stavke>
+  <stavka id="1" listaId="1" korisnikId="p-1" prioritet="Nizak" pomakDana="-10" />
+  <stavka id="2" listaId="1" korisnikId="p-2" prioritet="Visok" pomakDana="-2" />
+  <stavka id="3" listaId="1" korisnikId="p-3" prioritet="Srednji" pomakDana="-5" />
+  <stavka id="4" listaId="1" korisnikId="p-4" prioritet="Visok" pomakDana="-8" />
+  <stavka id="5" listaId="1" korisnikId="p-5" pomakDana="-20" />
+  <stavka id="6" listaId="2" korisnikId="p-1" prioritet="Nizak" pomakDana="-1" />
+  <stavka id="7" listaId="2" korisnikId="p-6" bezKorisnika="true" pomakDana="-3" />
+  <stavka id="8" listaId="2" korisnikId="p-7" prioritet="Srednji" pomakDana="-2" />
+</stavke>
