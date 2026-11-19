@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<usluge>
+  <usluga><id>1</id><naziv>Opći pregled</naziv><vrsta>OpcaMedicina</vrsta><cijena>30.00</cijena></usluga>
+  <usluga><id>2</id><naziv>EKG</naziv><vrsta>Kardiologija</vrsta><cijena>40.00</cijena></usluga>
+  <usluga><id>3</id><naziv>Ultrazvuk srca</naziv><vrsta>Kardiologija</vrsta><cijena>80.00</cijena></usluga>
+  <usluga><id>4</id><naziv>Holter pritiska</naziv><vrsta>Kardiologija</vrsta><cijena>60.00</cijena></usluga>
+  <usluga><id>5</id><naziv>Pedijatrijski pregled</naziv><vrsta>Pedijatrija</vrsta><cijena>35.00</cijena></usluga>
+  <usluga><id>6</id><naziv>Pregled mladeža</naziv><vrsta>Dermatologija</vrsta><cijena>50.00</cijena></usluga>
+</usluge>
