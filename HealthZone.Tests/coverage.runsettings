@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Postavke pokrivenosti koda (coverlet).
+     Iz pokrivenosti se isključuju Views (kompajlirani u namespace AspNetCoreGeneratedDocument),
+     Program.cs, EF Core migracije i scaffoldane Identity stranice. -->
+<RunSettings>
+  <DataCollectionRunSettings>
+    <DataCollectors>
+      <DataCollector friendlyName="XPlat code coverage">
+        <Configuration>
+          <Format>cobertura</Format>
+          <Include>[HealthZone]*</Include>
+          <Exclude>[HealthZone]AspNetCoreGeneratedDocument.*</Exclude>
+          <ExcludeByFile>**/Program.cs,**/Migrations/*.cs,**/Areas/Identity/Pages/**/*.cs</ExcludeByFile>
+        </Configuration>
+      </DataCollector>
+    </DataCollectors>
+  </DataCollectionRunSettings>
+</RunSettings>
