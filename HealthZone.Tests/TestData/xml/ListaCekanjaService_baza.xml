@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Liste čekanja koje vraća zamjenski repozitorij. Svaki doktor ima najviše jednu listu. -->
+<baza>
+  <lista id="1" doktorId="d-1" />
+  <lista id="2" doktorId="d-2" />
+  <lista id="3" doktorId="d-5" />
+</baza>

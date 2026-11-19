@@ -1,10 +1,16 @@
-<?xml version="1.0" encoding="utf-8" ?>
-<doktori>
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Korisnici iz repozitorija; doktor je korisnik sa specijalizacijom. -->
+<scenariji>
   <scenarij>
-    <doktorId>d1</doktorId>
-    <doktorIme>Mehmed</doktorIme>
-    <doktorPrezime>Mehmedovic</doktorPrezime>
-    <specijalizacija>Kardiologija</specijalizacija>
-    <ocekivanoDoktora>1</ocekivanoDoktora>
+    <korisnik id="d-1" specijalizacija="Kardiologija" />
+    <korisnik id="p-1" />
+    <korisnik id="d-2" specijalizacija="Pedijatrija" />
+    <korisnik id="p-2" />
+    <ocekivaniDoktori>d-1,d-2</ocekivaniDoktori>
   </scenarij>
-</doktori>
+  <scenarij>
+    <korisnik id="p-3" />
+    <korisnik id="p-4" />
+    <ocekivaniDoktori></ocekivaniDoktori>
+  </scenarij>
+</scenariji>
