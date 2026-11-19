@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<formati>
+  <scenarij>
+    <minute>60</minute>
+    <ocekivano>1 h</ocekivano>
+  </scenarij>
+  <scenarij>
+    <minute>90</minute>
+    <ocekivano>1 h 30 min</ocekivano>
+  </scenarij>
+  <scenarij>
+    <minute>120</minute>
+    <ocekivano>2 h</ocekivano>
+  </scenarij>
+  <scenarij>
+    <minute>125</minute>
+    <ocekivano>2 h 5 min</ocekivano>
+  </scenarij>
+</formati>

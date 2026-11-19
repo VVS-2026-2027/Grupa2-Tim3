@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<doktori>
+  <scenarij>
+    <doktorId>d1</doktorId>
+    <doktorIme>Mehmed</doktorIme>
+    <doktorPrezime>Mehmedovic</doktorPrezime>
+    <specijalizacija>Kardiolog</specijalizacija>
+    <ocekivanoDoktora>1</ocekivanoDoktora>
+  </scenarij>
+</doktori>

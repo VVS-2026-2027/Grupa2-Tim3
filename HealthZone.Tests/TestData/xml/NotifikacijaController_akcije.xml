@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<akcije>
+  <scenarij>
+    <id>1</id>
+    <poruka>Vasa notifikacija je spremna</poruka>
+    <ocekivaniTip>View</ocekivaniTip>
+  </scenarij>
+</akcije>

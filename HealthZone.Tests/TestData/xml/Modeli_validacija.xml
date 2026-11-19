@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<modeli>
+  <scenarij>
+    <doktorId>doc1</doktorId>
+    <poruka>Obavezna poruka</poruka>
+    <ocekivanoValidan>true</ocekivanoValidan>
+  </scenarij>
+  <scenarij>
+    <doktorId></doktorId>
+    <poruka></poruka>
+    <ocekivanoValidan>false</ocekivanoValidan>
+  </scenarij>
+</modeli>
