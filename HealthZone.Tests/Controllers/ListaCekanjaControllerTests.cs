@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Xml.Linq;
+using HealthZone.Controllers;
 using HealthZone.Models;
 using HealthZone.Services;
 using Microsoft.AspNetCore.Http;
