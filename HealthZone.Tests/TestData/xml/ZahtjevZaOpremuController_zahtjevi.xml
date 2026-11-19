@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<zahtjevi>
+  <zahtjev><id>1</id><naziv>Rendgen aparat</naziv><doktorId>doktor-1</doktorId><status>NaCekanju</status></zahtjev>
+  <zahtjev><id>2</id><naziv>Set skalpela</naziv><doktorId>doktor-1</doktorId><status>Potvrdjen</status></zahtjev>
+  <zahtjev><id>3</id><naziv>Mikroskop</naziv><doktorId>doktor-2</doktorId><status>NaCekanju</status></zahtjev>
+  <zahtjev><id>4</id><naziv>Centrifuga</naziv><doktorId>doktor-2</doktorId><status>Otkazan</status></zahtjev>
+</zahtjevi>

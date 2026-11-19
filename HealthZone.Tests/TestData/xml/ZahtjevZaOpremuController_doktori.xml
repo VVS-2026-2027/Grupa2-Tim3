@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<scenariji>
+  <scenarij>
+    <doktor><id>doktor-1</id><ime>Amra</ime></doktor>
+    <doktor><id>doktor-2</id><ime>Kenan</ime></doktor>
+    <doktor><id>doktor-3</id><ime>Lejla</ime></doktor>
+  </scenarij>
+  <scenarij>
+    <doktor><id>doktor-1</id><ime>Amra</ime></doktor>
+  </scenarij>
+  <scenarij></scenarij>
+</scenariji>

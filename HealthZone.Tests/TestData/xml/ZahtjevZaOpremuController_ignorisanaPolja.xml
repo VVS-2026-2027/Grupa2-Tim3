@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Polja koja nisu u formi: kontroler ih briše iz ModelState-a, pa greška na njima ne sprečava snimanje -->
+<scenariji>
+  <scenarij><polje>Doktor</polje><greska>Polje Doktor je obavezno.</greska><prijavljeniDoktorId>doktor-1</prijavljeniDoktorId></scenarij>
+  <scenarij><polje>Status</polje><greska>Polje Status je obavezno.</greska><prijavljeniDoktorId>doktor-2</prijavljeniDoktorId></scenarij>
+  <scenarij><polje>DoktorID</polje><greska>Polje Doktor je obavezno.</greska><prijavljeniDoktorId>doktor-1</prijavljeniDoktorId></scenarij>
+</scenariji>
