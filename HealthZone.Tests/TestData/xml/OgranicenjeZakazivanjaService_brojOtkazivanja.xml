@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- pomakDana = koliko dana od "sada" je termin otkazan (negativno = u prošlosti).
+     Sva otkazivanja su unutar zadnjih 30 dana, pa se testira samo granica od 3 otkazivanja. -->
+<scenariji>
+  <scenarij><mozeZakazati>true</mozeZakazati></scenarij>
+  <scenarij><otkazivanje pomakDana="-3" /><mozeZakazati>true</mozeZakazati></scenarij>
+  <scenarij><otkazivanje pomakDana="-3" /><otkazivanje pomakDana="-12" /><mozeZakazati>true</mozeZakazati></scenarij>
+  <scenarij><otkazivanje pomakDana="-3" /><otkazivanje pomakDana="-12" /><otkazivanje pomakDana="-20" /><mozeZakazati>false</mozeZakazati></scenarij>
+  <scenarij><otkazivanje pomakDana="-1" /><otkazivanje pomakDana="-2" /><otkazivanje pomakDana="-3" /><otkazivanje pomakDana="-4" /><otkazivanje pomakDana="-5" /><mozeZakazati>false</mozeZakazati></scenarij>
+</scenariji>
