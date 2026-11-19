@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Prazan telefon se snima kao null (element ocekivaniTelefon ne postoji), a uneseni telefon se snima kakav jeste -->
+<scenariji>
+  <scenarij><email>amra@healthzone.ba</email><lozinka>Lozinka1!</lozinka><telefon></telefon></scenarij>
+  <scenarij><email>kenan@healthzone.ba</email><lozinka>Lozinka1!</lozinka><telefon>061123456</telefon><ocekivaniTelefon>061123456</ocekivaniTelefon></scenarij>
+</scenariji>

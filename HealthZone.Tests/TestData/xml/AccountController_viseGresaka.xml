@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Više grešaka iz Identity-ja se spajaju u jednu poruku, razdvojene razmakom -->
+<scenariji>
+  <scenarij>
+    <greska><kod>PasswordTooShort</kod><opis>Passwords must be at least 6 characters.</opis></greska>
+    <greska><kod>PasswordRequiresDigit</kod><opis>Passwords must have at least one digit.</opis></greska>
+    <ocekivanaPoruka>Lozinka mora imati najmanje 6 znakova. Lozinka mora sadržavati najmanje jedan broj.</ocekivanaPoruka>
+  </scenarij>
+  <scenarij>
+    <greska><kod>DuplicateEmail</kod><opis>Email is already taken.</opis></greska>
+    <greska><kod>DuplicateUserName</kod><opis>Username is already taken.</opis></greska>
+    <ocekivanaPoruka>Ovaj email je već registrovan. Ovaj email je već u upotrebi.</ocekivanaPoruka>
+  </scenarij>
+</scenariji>

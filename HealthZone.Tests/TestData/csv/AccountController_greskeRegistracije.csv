@@ -1,0 +1,10 @@
+kodGreske;opisGreske;ocekivanaPoruka
+PasswordTooShort;Passwords must be at least 6 characters.;Lozinka mora imati najmanje 6 znakova.
+PasswordRequiresNonAlphanumeric;Passwords must have at least one non alphanumeric character.;Lozinka mora sadržavati najmanje jedan specijalni znak (npr. !, @, #).
+PasswordRequiresLower;Passwords must have at least one lowercase.;Lozinka mora sadržavati najmanje jedno malo slovo.
+PasswordRequiresUpper;Passwords must have at least one uppercase.;Lozinka mora sadržavati najmanje jedno veliko slovo.
+PasswordRequiresDigit;Passwords must have at least one digit.;Lozinka mora sadržavati najmanje jedan broj.
+DuplicateEmail;Email is already taken.;Ovaj email je već registrovan.
+DuplicateUserName;Username is already taken.;Ovaj email je već u upotrebi.
+InvalidEmail;Email is invalid.;Email adresa nije ispravnog formata.
+NepoznataGreska;Nepoznata greška pri registraciji.;Nepoznata greška pri registraciji.
