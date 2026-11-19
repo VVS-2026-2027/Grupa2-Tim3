@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- pomakSati = koliko sati od "sada" počinje termin -->
+<scenariji>
+  <scenarij><pomakSati>2</pomakSati><ocekivaniRezultat>DozvoljenoUzUpozorenje</ocekivaniRezultat></scenarij>
+  <scenarij><pomakSati>10</pomakSati><ocekivaniRezultat>DozvoljenoUzUpozorenje</ocekivaniRezultat></scenarij>
+  <scenarij><pomakSati>23.99</pomakSati><ocekivaniRezultat>DozvoljenoUzUpozorenje</ocekivaniRezultat></scenarij>
+  <scenarij><pomakSati>24</pomakSati><ocekivaniRezultat>Dozvoljeno</ocekivaniRezultat></scenarij>
+  <scenarij><pomakSati>72</pomakSati><ocekivaniRezultat>Dozvoljeno</ocekivaniRezultat></scenarij>
+</scenariji>
