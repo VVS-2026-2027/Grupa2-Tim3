@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Doktori i njihovi zahtjevi koji se prije svakog testa upisuju u InMemory bazu. -->
+<baza>
+  <doktor id="doktor-1" ime="Amra" prezime="Hodžić" />
+  <doktor id="doktor-2" ime="Kenan" prezime="Begić" />
+  <zahtjev id="1" naziv="Rendgen aparat" opis="Stari aparat je pokvaren" doktor="doktor-1" status="NaCekanju" vrsta="Nabavka" kategorija="Dijagnosticka" hitnost="Visok" />
+  <zahtjev id="2" naziv="Mikroskop" opis="Potreban za laboratoriju" doktor="doktor-2" status="Potvrdjen" vrsta="Zamjena" kategorija="Laboratorijska" hitnost="Srednji" />
+  <zahtjev id="3" naziv="Defibrilator" opis="Servis nakon kvara" doktor="doktor-1" status="NaCekanju" vrsta="Servisiranje" kategorija="Dijagnosticka" hitnost="Hitno" />
+  <!-- GetAllAsync vraća zahtjeve od najnovijeg (najvećeg id-ja) -->
+  <ocekivaniRedoslijed>3,2,1</ocekivaniRedoslijed>
+</baza>
