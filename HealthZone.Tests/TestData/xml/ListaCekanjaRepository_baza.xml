@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Zapisi koji se prije svakog testa upisuju u InMemory bazu: doktori i njihove liste čekanja. -->
+<baza>
+  <korisnik id="d-1" ime="Amra" prezime="Hodžić" email="amra.hodzic@mail.ba" />
+  <korisnik id="d-2" ime="Kenan" prezime="Begić" email="kenan.begic@mail.ba" />
+  <korisnik id="d-3" ime="Lejla" prezime="Mušić" email="lejla.music@mail.ba" />
+  <lista id="1" doktorId="d-1" />
+  <lista id="2" doktorId="d-2" />
+</baza>
