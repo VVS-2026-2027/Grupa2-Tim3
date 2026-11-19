@@ -7,12 +7,31 @@ namespace HealthZone.Services
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<PodsjetnikHostedService> _logger;
 
+        // Čekanje i trenutno vrijeme su izdvojeni da bi se u unit testovima mogli zamijeniti.
+        // Bez toga bi test morao stvarno čekati do 08:00 sljedećeg dana.
+        // U aplikaciji su to obični Task.Delay i DateTime.Now, pa se ponašanje ne mijenja.
+        private readonly Func<TimeSpan, CancellationToken, Task> _cekaj;
+        private readonly Func<DateTime> _sada;
+
+        // Ovaj konstruktor koristi aplikacija (DI ga bira jer ne zna napraviti Func parametre).
         public PodsjetnikHostedService(
             IServiceScopeFactory scopeFactory,
             ILogger<PodsjetnikHostedService> logger)
+            : this(scopeFactory, logger, (trajanje, token) => Task.Delay(trajanje, token), () => DateTime.Now)
+        {
+        }
+
+        // Ovaj konstruktor koriste testovi: čekanje i trenutno vrijeme se prosljeđuju izvana.
+        public PodsjetnikHostedService(
+            IServiceScopeFactory scopeFactory,
+            ILogger<PodsjetnikHostedService> logger,
+            Func<TimeSpan, CancellationToken, Task> cekaj,
+            Func<DateTime> sada)
         {
             _scopeFactory = scopeFactory;
             _logger = logger;
+            _cekaj = cekaj;
+            _sada = sada;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -28,12 +47,12 @@ namespace HealthZone.Services
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                var sada = DateTime.Now;
-                var sljedeće = DateTime.Today.AddDays(1).AddHours(8);
+                var sada = _sada();
+                var sljedeće = sada.Date.AddDays(1).AddHours(8);
                 var čekanje = sljedeće - sada;
 
                 _logger.LogInformation("Podsjetnik: sljedeće slanje u {Sljedece}", sljedeće);
-                await Task.Delay(čekanje, stoppingToken);
+                await _cekaj(čekanje, stoppingToken);
 
                 if (stoppingToken.IsCancellationRequested) break;
 
@@ -42,7 +61,7 @@ namespace HealthZone.Services
                     using var scope = _scopeFactory.CreateScope();
                     var terminService = scope.ServiceProvider.GetRequiredService<ITerminService>();
                     await terminService.PošaljiPodsjetnikeSutraAsync();
-                    _logger.LogInformation("Podsjetnici poslani za {Datum}", DateTime.Today.AddDays(1).ToString("dd.MM.yyyy"));
+                    _logger.LogInformation("Podsjetnici poslani za {Datum}", _sada().Date.AddDays(1).ToString("dd.MM.yyyy"));
                 }
                 catch (Exception ex)
                 {
@@ -61,7 +80,7 @@ namespace HealthZone.Services
                     using var scope = _scopeFactory.CreateScope();
                     var terminService = scope.ServiceProvider.GetRequiredService<ITerminService>();
 
-                    var sada = DateTime.Now;
+                    var sada = _sada();
 
                     var sviTermini = await terminService.GetAllAsync();
 
@@ -103,8 +122,8 @@ namespace HealthZone.Services
                     _logger.LogError(ex, "Greška pri provjeri statusa termina.");
                 }
 
-                await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+                await _cekaj(TimeSpan.FromMinutes(1), stoppingToken);
             }
         }
     }
-}
+}

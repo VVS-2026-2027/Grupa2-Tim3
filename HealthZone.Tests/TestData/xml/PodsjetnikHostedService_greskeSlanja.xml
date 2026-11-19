@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Greške koje baci ITerminService dok pozadinski servis šalje podsjetnike u 08:00. -->
+<greske>
+  <greska><poruka>SMTP server nije dostupan.</poruka></greska>
+  <greska><poruka>Neispravna adresa primaoca.</poruka></greska>
+</greske>

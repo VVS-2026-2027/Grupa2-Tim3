@@ -42,6 +42,25 @@ public static class PodsjetnikHostedServicePodaci
         await Task.WhenAny(servis.ExecuteTask ?? Task.CompletedTask, Task.Delay(TimeSpan.FromSeconds(5)));
     }
 
+    // Zamjena za Task.Delay: zabilježi koliko bi servis čekao i odmah nastavi, kao da je vrijeme isteklo.
+    public static Func<TimeSpan, CancellationToken, Task> CekanjeKojeOdmahIstekne(List<TimeSpan> zabiljezenaCekanja) =>
+        (trajanje, token) =>
+        {
+            zabiljezenaCekanja.Add(trajanje);
+            return Task.CompletedTask;
+        };
+
+    // Zamjena za Task.Delay: zabilježi koliko bi servis čekao i zaustavi servis dok čeka
+    // (kao da se aplikacija ugasila prije 08:00).
+    public static Func<TimeSpan, CancellationToken, Task> CekanjeTokomKojegSeServisZaustavlja(
+        List<TimeSpan> zabiljezenaCekanja, CancellationTokenSource cts) =>
+        (trajanje, token) =>
+        {
+            zabiljezenaCekanja.Add(trajanje);
+            cts.Cancel();
+            return Task.CompletedTask;
+        };
+
     // ── izvori podataka (CSV) ──
     // Kolona "akcija" kaže šta servis treba uraditi s terminom: otkazi, aktiviraj ili nista.
 
@@ -63,11 +82,33 @@ public static class PodsjetnikHostedServicePodaci
     public static IEnumerable<object[]> Greske() =>
         XmlLoader.Ucitaj("PodsjetnikHostedService_greske.xml", "greska")
                  .Select(x => new object[] { (string)x.Element("poruka")! });
+
+    // Greške koje baci slanje podsjetnika (npr. pad SMTP servera).
+    public static IEnumerable<object[]> GreskeSlanja() =>
+        XmlLoader.Ucitaj("PodsjetnikHostedService_greskeSlanja.xml", "greska")
+                 .Select(x => new object[] { (string)x.Element("poruka")! });
+
+    // ── izvori podataka za petlju podsjetnika (CSV) ──
+    // Trenutno vrijeme je broj sati od ponoći, a očekivano čekanje je broj sati do 08:00 sljedećeg dana.
+
+    private static IEnumerable<string[]> Cekanje() => CsvLoader.Ucitaj("PodsjetnikHostedService_cekanje.csv");
+
+    public static IEnumerable<object[]> Cekanja() =>
+        Cekanje().Select(r => new object[]
+        {
+            double.Parse(r[0], CultureInfo.InvariantCulture),
+            double.Parse(r[1], CultureInfo.InvariantCulture)
+        });
+
+    public static IEnumerable<object[]> TrenutnaVremena() =>
+        Cekanje().Select(r => new object[] { double.Parse(r[0], CultureInfo.InvariantCulture) });
 }
 
 // ─── Testovi ────────────────────────────────────────────────────────────
 // Servis ima dvije petlje: podsjetnike šalje svaki dan u 08:00, a statuse termina provjerava svake minute.
 // Testovi pokreću servis, puštaju jedan krug provjere statusa i zaustavljaju ga otkazivanjem tokena.
+// Za petlju podsjetnika se koristi drugi konstruktor, kojem se proslijede zamjene za Task.Delay i DateTime.Now,
+// pa test ne mora čekati do 08:00 (_servisSaSatom).
 [TestClass]
 public class PodsjetnikHostedServiceTests
 {
@@ -77,6 +118,12 @@ public class PodsjetnikHostedServiceTests
     private Mock<ILogger<PodsjetnikHostedService>> _logger = null!;
     private CancellationTokenSource _cts = null!;
     private PodsjetnikHostedService _servis = null!;
+
+    // Za petlju podsjetnika: servis sa zamijenjenim čekanjem i trenutnim vremenom.
+    private PodsjetnikHostedService _servisSaSatom = null!;
+    private List<TimeSpan> _zabiljezenaCekanja = null!;
+    private Func<TimeSpan, CancellationToken, Task> _cekanje = null!;
+    private DateTime _trenutnoVrijeme;
 
     [ClassInitialize]
     public static void ClassInit(TestContext context)
@@ -92,12 +139,20 @@ public class PodsjetnikHostedServiceTests
         _cts = new CancellationTokenSource(_maksimalnoTrajanje);
         var scopeFactory = PodsjetnikHostedServicePodaci.NapraviScopeFactory(_terminServis.Object);
         _servis = new PodsjetnikHostedService(scopeFactory.Object, _logger.Object);
+
+        // Test u Arrange po potrebi promijeni _cekanje i _trenutnoVrijeme, a servis ih čita preko lambdi.
+        _zabiljezenaCekanja = new List<TimeSpan>();
+        _trenutnoVrijeme = DateTime.Now;
+        _cekanje = PodsjetnikHostedServicePodaci.CekanjeKojeOdmahIstekne(_zabiljezenaCekanja);
+        _servisSaSatom = new PodsjetnikHostedService(scopeFactory.Object, _logger.Object,
+            (trajanje, token) => _cekanje(trajanje, token), () => _trenutnoVrijeme);
     }
 
     [TestCleanup]
     public void Cleanup()
     {
         _servis.Dispose();
+        _servisSaSatom.Dispose();
         _cts.Dispose();
         _terminServis.Reset();
         _logger.Reset();
@@ -238,5 +293,102 @@ public class PodsjetnikHostedServiceTests
 
         // Assert
         _terminServis.Verify(s => s.GetAllAsync(), Times.Once);
+    }
+
+    // ─── SLANJE PODSJETNIKA (svaki dan u 08:00) ───────────────────────────
+
+    [TestMethod]
+    [DynamicData(nameof(PodsjetnikHostedServicePodaci.Cekanja), typeof(PodsjetnikHostedServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    [Priority(1)]
+    [Timeout(10000)]
+    public async Task PodsjetnikLoop_TrenutnoVrijeme_CekaDoOsamSatiSljedecegDana(double satiOdPonoci, double ocekivaniSatiCekanja)
+    {
+        // Arrange
+        _trenutnoVrijeme = DateTime.Today.AddHours(satiOdPonoci);
+        _cekanje = PodsjetnikHostedServicePodaci.CekanjeTokomKojegSeServisZaustavlja(_zabiljezenaCekanja, _cts);
+
+        // Act
+        await PodsjetnikHostedServicePodaci.PokreniJedanKrug(_servisSaSatom, _cts.Token);
+
+        // Assert
+        Assert.AreEqual(TimeSpan.FromHours(ocekivaniSatiCekanja), _zabiljezenaCekanja.First());
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(PodsjetnikHostedServicePodaci.TrenutnaVremena), typeof(PodsjetnikHostedServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    [Timeout(10000)]
+    public async Task PodsjetnikLoop_ServisZaustavljenTokomCekanja_NeSaljePodsjetnike(double satiOdPonoci)
+    {
+        // Arrange
+        _trenutnoVrijeme = DateTime.Today.AddHours(satiOdPonoci);
+        _cekanje = PodsjetnikHostedServicePodaci.CekanjeTokomKojegSeServisZaustavlja(_zabiljezenaCekanja, _cts);
+
+        // Act
+        await PodsjetnikHostedServicePodaci.PokreniJedanKrug(_servisSaSatom, _cts.Token);
+
+        // Assert
+        _terminServis.Verify(s => s.PošaljiPodsjetnikeSutraAsync(), Times.Never);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(PodsjetnikHostedServicePodaci.TrenutnaVremena), typeof(PodsjetnikHostedServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    [Priority(1)]
+    [Timeout(10000)]
+    public async Task PodsjetnikLoop_DocekanoVrijemeSlanja_SaljePodsjetnike(double satiOdPonoci)
+    {
+        // Arrange
+        _trenutnoVrijeme = DateTime.Today.AddHours(satiOdPonoci);
+        _terminServis.Setup(s => s.PošaljiPodsjetnikeSutraAsync()).Callback(() => _cts.Cancel()).Returns(Task.CompletedTask);
+
+        // Act
+        await PodsjetnikHostedServicePodaci.PokreniJedanKrug(_servisSaSatom, _cts.Token);
+
+        // Assert
+        _terminServis.Verify(s => s.PošaljiPodsjetnikeSutraAsync(), Times.Once);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(PodsjetnikHostedServicePodaci.GreskeSlanja), typeof(PodsjetnikHostedServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock"), TestCategory("Izuzetak")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    [Timeout(10000)]
+    public async Task PodsjetnikLoop_SlanjeBaciIzuzetak_ZapisujeGreskuULog(string poruka)
+    {
+        // Arrange
+        _terminServis.Setup(s => s.PošaljiPodsjetnikeSutraAsync()).Callback(() => _cts.Cancel()).ThrowsAsync(new Exception(poruka));
+
+        // Act
+        await PodsjetnikHostedServicePodaci.PokreniJedanKrug(_servisSaSatom, _cts.Token);
+
+        // Assert
+        _logger.Verify(l => l.Log(
+            LogLevel.Error,
+            It.IsAny<EventId>(),
+            It.IsAny<It.IsAnyType>(),
+            It.Is<Exception>(e => e.Message == poruka),
+            It.IsAny<Func<It.IsAnyType, Exception?, string>>()), Times.Once);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(PodsjetnikHostedServicePodaci.GreskeSlanja), typeof(PodsjetnikHostedServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Izuzetak")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    [Timeout(10000)]
+    public async Task PodsjetnikLoop_SlanjeBaciIzuzetak_ServisSeZaustavljaBezPada(string poruka)
+    {
+        // Arrange
+        _terminServis.Setup(s => s.PošaljiPodsjetnikeSutraAsync()).Callback(() => _cts.Cancel()).ThrowsAsync(new Exception(poruka));
+
+        // Act
+        await PodsjetnikHostedServicePodaci.PokreniJedanKrug(_servisSaSatom, _cts.Token);
+
+        // Assert
+        Assert.IsTrue(_servisSaSatom.ExecuteTask!.IsCompletedSuccessfully);
     }
 }
