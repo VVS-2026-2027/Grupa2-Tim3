@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Doktori, pacijenti, usluge i termini koji se prije svakog testa upisuju u InMemory bazu. -->
+<baza>
+  <korisnici>
+    <korisnik id="d-1" ime="Amar" prezime="Hodzic" />
+    <korisnik id="d-2" ime="Lejla" prezime="Kovac" />
+    <korisnik id="p-1" ime="Amra" prezime="Begic" />
+    <korisnik id="p-2" ime="Kenan" prezime="Delic" />
+  </korisnici>
+  <usluge>
+    <usluga id="1" naziv="Opsti pregled" opis="Osnovni pregled" vrsta="OpcaMedicina" cijena="40.00" />
+    <usluga id="2" naziv="Kardioloski pregled" opis="Pregled srca i EKG" vrsta="Kardiologija" cijena="80.00" />
+  </usluge>
+  <termini>
+    <termin id="1" doktor="d-1" pacijent="p-1" usluga="1" pomakDana="1" sat="9" status="Potvrdjen" />
+    <termin id="2" doktor="d-2" pacijent="p-2" usluga="2" pomakDana="2" sat="10" status="NaCekanju" />
+    <termin id="3" doktor="d-1" pacijent="p-2" usluga="1" pomakDana="3" sat="11" status="Otkazan" />
+  </termini>
+</baza>
