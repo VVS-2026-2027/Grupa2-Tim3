@@ -29,7 +29,7 @@ public static class ListaCekanjaServicePodaci
                      (string)x.Element("doktorId")!,
                      (string)x.Element("doktorIme")!,
                      (string)x.Element("doktorPrezime")!,
-                     (string)x.Element("specijalizacija")!,
+                     Enum.Parse<Specijalizacija>((string)x.Element("specijalizacija")!),
                      (int)x.Element("ocekivanoDoktora")!
                  });
 }
@@ -343,7 +343,7 @@ public class ListaCekanjaServiceTests
     [TestCategory("Stub"), TestCategory("DataDriven")]
     [TestProperty("Autor", "Ramiz Plancic")]
     public async Task GetDoktoriAsync_PostojeKorisnici_VracaDoktoreSaSpecijalizacijom(
-        string doktorId, string ime, string prezime, string specijalizacija, int ocekivanoDoktora)
+        string doktorId, string ime, string prezime, Specijalizacija specijalizacija, int ocekivanoDoktora)
     {
         // Arrange
         var korisnici = new List<Korisnik>

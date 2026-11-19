@@ -4,7 +4,7 @@
     <doktorId>d1</doktorId>
     <doktorIme>Mehmed</doktorIme>
     <doktorPrezime>Mehmedovic</doktorPrezime>
-    <specijalizacija>Kardiolog</specijalizacija>
+    <specijalizacija>Kardiologija</specijalizacija>
     <ocekivanoDoktora>1</ocekivanoDoktora>
   </scenarij>
 </doktori>
