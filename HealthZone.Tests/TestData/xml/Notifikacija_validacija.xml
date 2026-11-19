@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Poruka notifikacije je obavezna; termin je broj, pa ga [Required] uvijek prihvata. -->
+<scenariji>
+  <scenarij><poruka>Termin je zakazan.</poruka><terminId>10</terminId><ocekivaneGreske></ocekivaneGreske></scenarij>
+  <scenarij><poruka></poruka><terminId>10</terminId><ocekivaneGreske>Polje Poruka je obavezno.</ocekivaneGreske></scenarij>
+  <scenarij><poruka>   </poruka><terminId>0</terminId><ocekivaneGreske>Polje Poruka je obavezno.</ocekivaneGreske></scenarij>
+</scenariji>
