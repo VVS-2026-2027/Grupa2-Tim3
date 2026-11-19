@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <filteri>
-  <filter><kategorija>Dijagnosticka</kategorija><ocekivaniBroj>3</ocekivaniBroj></filter>
-  <filter><kategorija>Hirurska</kategorija><ocekivaniBroj>1</ocekivaniBroj></filter>
-  <filter><kategorija>Laboratorijska</kategorija><ocekivaniBroj>2</ocekivaniBroj></filter>
-  <filter><kategorija>Rehabilitacijska</kategorija><ocekivaniBroj>1</ocekivaniBroj></filter>
+  <filter><kategorija>Dijagnosticka</kategorija><ocekivaniId>1,5,7</ocekivaniId></filter>
+  <filter><kategorija>Hirurska</kategorija><ocekivaniId>2</ocekivaniId></filter>
+  <filter><kategorija>Laboratorijska</kategorija><ocekivaniId>3,4</ocekivaniId></filter>
+  <filter><kategorija>Rehabilitacijska</kategorija><ocekivaniId>6</ocekivaniId></filter>
 </filteri>

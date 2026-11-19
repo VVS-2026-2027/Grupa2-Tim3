@@ -6,34 +6,12 @@ using Moq;
 
 namespace HealthZone.Tests;
 
-[TestClass]
-public class ZahtjevZaOpremuServiceTests
+// ─── Izvori podataka i pomoćne metode za ZahtjevZaOpremuServiceTests ────
+public static class ZahtjevZaOpremuServicePodaci
 {
-    private Mock<IZahtjevZaOpremuRepository> _zahtjevRepo = null!;
-    private Mock<IKorisnikRepository> _korisnikRepo = null!;
-    private ZahtjevZaOpremuService _servis = null!;
-    private List<ZahtjevZaOpremu> _baza = null!;
+    // ── pomoćne metode ──
 
-    [TestInitialize]
-    public void Setup()
-    {
-        // "Baza" zahtjeva se čita iz XML-a za svaki test ispočetka, pa testovi ne utiču jedan na drugi
-        // (npr. test koji odobri zahtjev ne mijenja status zahtjeva u drugom testu).
-        _baza = XmlLoader.Ucitaj("ZahtjevZaOpremuService_zahtjevi.xml", "zahtjev").Select(NapraviZahtjev).ToList();
-
-        _zahtjevRepo = new Mock<IZahtjevZaOpremuRepository>();
-        _zahtjevRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(_baza);
-        _zahtjevRepo.Setup(r => r.GetByIdAsync(It.IsAny<int>()))
-                    .ReturnsAsync((int id) => _baza.FirstOrDefault(z => z.ZahtjevId == id));
-
-        _korisnikRepo = new Mock<IKorisnikRepository>();
-
-        _servis = new ZahtjevZaOpremuService(_zahtjevRepo.Object, _korisnikRepo.Object);
-    }
-
-    // ───────────── Pomoćne metode za pretvaranje XML-a u objekte ─────────────
-
-    private static ZahtjevZaOpremu NapraviZahtjev(XElement x) => new ZahtjevZaOpremu
+    public static ZahtjevZaOpremu NapraviZahtjev(XElement x) => new()
     {
         ZahtjevId = (int)x.Element("id")!,
         Naziv = (string)x.Element("naziv")!,
@@ -44,7 +22,7 @@ public class ZahtjevZaOpremuServiceTests
         Hitnost = Enum.Parse<Hitnost>((string)x.Element("hitnost")!)
     };
 
-    private static Korisnik NapraviKorisnika(XElement x) => new Korisnik
+    public static Korisnik NapraviKorisnika(XElement x) => new()
     {
         Id = (string)x.Element("id")!,
         Specijalizacija = string.IsNullOrEmpty((string)x.Element("specijalizacija")!)
@@ -52,7 +30,10 @@ public class ZahtjevZaOpremuServiceTests
             : Enum.Parse<Specijalizacija>((string)x.Element("specijalizacija")!)
     };
 
-    // ───────────── Izvori podataka (CSV i XML) ─────────────
+    public static int[] Idjevi(string? s) =>
+        (s ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries).Select(int.Parse).ToArray();
+
+    // ── izvori podataka (CSV) ──
 
     public static IEnumerable<object[]> NevalidanZahtjev() =>
         CsvLoader.Ucitaj("ZahtjevZaOpremuService_nevalidanZahtjev.csv")
@@ -80,7 +61,7 @@ public class ZahtjevZaOpremuServiceTests
 
     public static IEnumerable<object[]> ZahtjeviDoktora() =>
         CsvLoader.Ucitaj("ZahtjevZaOpremuService_zahtjeviDoktora.csv")
-                 .Select(r => new object[] { r[0], int.Parse(r[1]) });
+                 .Select(r => new object[] { r[0], Idjevi(r[1]) });
 
     public static IEnumerable<object[]> PostojeciZahtjev() =>
         CsvLoader.Ucitaj("ZahtjevZaOpremuService_postojeciZahtjev.csv")
@@ -94,26 +75,69 @@ public class ZahtjevZaOpremuServiceTests
         CsvLoader.Ucitaj("ZahtjevZaOpremuService_sviZahtjevi.csv")
                  .Select(r => new object[] { int.Parse(r[0]) });
 
+    // ── izvori podataka (XML) ──
+
     public static IEnumerable<object[]> PoStatusu() =>
         XmlLoader.Ucitaj("ZahtjevZaOpremuService_poStatusu.xml", "filter")
-                 .Select(x => new object[] { Enum.Parse<Status>((string)x.Element("status")!), (int)x.Element("ocekivaniBroj")! });
+                 .Select(x => new object[] { Enum.Parse<Status>((string)x.Element("status")!), Idjevi((string?)x.Element("ocekivaniId")) });
 
     public static IEnumerable<object[]> PoKategoriji() =>
         XmlLoader.Ucitaj("ZahtjevZaOpremuService_poKategoriji.xml", "filter")
-                 .Select(x => new object[] { Enum.Parse<KategorijaOpreme>((string)x.Element("kategorija")!), (int)x.Element("ocekivaniBroj")! });
+                 .Select(x => new object[] { Enum.Parse<KategorijaOpreme>((string)x.Element("kategorija")!), Idjevi((string?)x.Element("ocekivaniId")) });
 
     public static IEnumerable<object[]> PoHitnosti() =>
         XmlLoader.Ucitaj("ZahtjevZaOpremuService_poHitnosti.xml", "scenarij")
-                 .Select(x => new object[] { ((string)x.Element("ocekivaniRedoslijedId")!).Split(',').Select(int.Parse).ToArray() });
+                 .Select(x => new object[] { Idjevi((string?)x.Element("ocekivaniRedoslijedId")) });
 
     public static IEnumerable<object[]> Korisnici() =>
         XmlLoader.Ucitaj("ZahtjevZaOpremuService_korisnici.xml", "scenarij")
                  .Select(x => new object[] { x.Elements("korisnik").Select(NapraviKorisnika).ToList(), (int)x.Element("ocekivaniBrojDoktora")! });
+}
 
-    // ───────────── AddAsync ─────────────
+// ─── Testovi ────────────────────────────────────────────────────────────
+[TestClass]
+public class ZahtjevZaOpremuServiceTests
+{
+    private static List<XElement> _bazaZahtjeva = null!;   // samo za čitanje
+
+    private Mock<IZahtjevZaOpremuRepository> _zahtjevRepo = null!;
+    private Mock<IKorisnikRepository> _korisnikRepo = null!;
+    private ZahtjevZaOpremuService _servis = null!;
+
+    [ClassInitialize]
+    public static void ClassInit(TestContext context)
+    {
+        // XML "baza" se čita jednom; objekti se iz nje prave ispočetka za svaki test,
+        // pa test koji odobri zahtjev ne mijenja status zahtjeva u drugom testu.
+        _bazaZahtjeva = XmlLoader.Ucitaj("ZahtjevZaOpremuService_zahtjevi.xml", "zahtjev").ToList();
+    }
+
+    [TestInitialize]
+    public void Setup()
+    {
+        var baza = _bazaZahtjeva.Select(ZahtjevZaOpremuServicePodaci.NapraviZahtjev).ToList();
+
+        _zahtjevRepo = new Mock<IZahtjevZaOpremuRepository>();
+        _zahtjevRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(baza);
+        _zahtjevRepo.Setup(r => r.GetByIdAsync(It.IsAny<int>()))
+                    .ReturnsAsync((int id) => baza.FirstOrDefault(z => z.ZahtjevId == id));
+
+        _korisnikRepo = new Mock<IKorisnikRepository>();
+
+        _servis = new ZahtjevZaOpremuService(_zahtjevRepo.Object, _korisnikRepo.Object);
+    }
+
+    [TestCleanup]
+    public void Cleanup()
+    {
+        _zahtjevRepo.Reset();
+        _korisnikRepo.Reset();
+    }
+
+    // ─── AddAsync ─────────────────────────────────────────────────────────
 
     [TestMethod]
-    [DynamicData(nameof(NevalidanZahtjev), DynamicDataSourceType.Method)]
+    [DynamicData(nameof(ZahtjevZaOpremuServicePodaci.NevalidanZahtjev), typeof(ZahtjevZaOpremuServicePodaci), DynamicDataSourceType.Method)]
     [TestCategory("DataDriven"), TestCategory("Izuzetak")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
     [Priority(1)]
@@ -130,8 +154,8 @@ public class ZahtjevZaOpremuServiceTests
     }
 
     [TestMethod]
-    [DynamicData(nameof(NoviZahtjev), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven")]
+    [DynamicData(nameof(ZahtjevZaOpremuServicePodaci.NoviZahtjev), typeof(ZahtjevZaOpremuServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
     public async Task AddAsync_ValidanZahtjev_PostavljaStatusNaCekanju(string naziv, string opis, Status ocekivaniStatus)
     {
@@ -146,11 +170,11 @@ public class ZahtjevZaOpremuServiceTests
     }
 
     [TestMethod]
-    [DynamicData(nameof(NoviZahtjev), DynamicDataSourceType.Method)]
+    [DynamicData(nameof(ZahtjevZaOpremuServicePodaci.NoviZahtjev), typeof(ZahtjevZaOpremuServicePodaci), DynamicDataSourceType.Method)]
     [TestCategory("DataDriven"), TestCategory("Mock")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
     [Timeout(2000)]
-    public async Task AddAsync_ValidanZahtjev_DodajeISnimaZahtjev(string naziv, string opis, Status ocekivaniStatus)
+    public async Task AddAsync_ValidanZahtjev_DodajeZahtjev(string naziv, string opis, Status ocekivaniStatus)
     {
         // Arrange
         var zahtjev = new ZahtjevZaOpremu { Naziv = naziv, Opis = opis };
@@ -159,15 +183,30 @@ public class ZahtjevZaOpremuServiceTests
         await _servis.AddAsync(zahtjev);
 
         // Assert
-        _zahtjevRepo.Verify(r => r.AddAsync(It.Is<ZahtjevZaOpremu>(z => z == zahtjev && z.Status == ocekivaniStatus)), Times.Once);
+        _zahtjevRepo.Verify(r => r.AddAsync(zahtjev), Times.Once);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(ZahtjevZaOpremuServicePodaci.NoviZahtjev), typeof(ZahtjevZaOpremuServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Fatih Crljenkovic")]
+    public async Task AddAsync_ValidanZahtjev_SnimaPromjene(string naziv, string opis, Status ocekivaniStatus)
+    {
+        // Arrange
+        var zahtjev = new ZahtjevZaOpremu { Naziv = naziv, Opis = opis };
+
+        // Act
+        await _servis.AddAsync(zahtjev);
+
+        // Assert
         _zahtjevRepo.Verify(r => r.SaveChangesAsync(), Times.Once);
     }
 
-    // ───────────── OdobriZahtjevAsync ─────────────
+    // ─── OdobriZahtjevAsync ───────────────────────────────────────────────
 
     [TestMethod]
-    [DynamicData(nameof(NepostojeciZahtjev), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Izuzetak")]
+    [DynamicData(nameof(ZahtjevZaOpremuServicePodaci.NepostojeciZahtjev), typeof(ZahtjevZaOpremuServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Izuzetak")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
     [Priority(1)]
     public async Task OdobriZahtjevAsync_ZahtjevNePostoji_BacaException(int id, string ocekivanaPoruka)
@@ -180,8 +219,8 @@ public class ZahtjevZaOpremuServiceTests
     }
 
     [TestMethod]
-    [DynamicData(nameof(ObradjenZahtjev), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Izuzetak")]
+    [DynamicData(nameof(ZahtjevZaOpremuServicePodaci.ObradjenZahtjev), typeof(ZahtjevZaOpremuServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Izuzetak")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
     public async Task OdobriZahtjevAsync_ZahtjevVecObradjen_BacaException(int id, string ocekivanaPoruka)
     {
@@ -193,24 +232,36 @@ public class ZahtjevZaOpremuServiceTests
     }
 
     [TestMethod]
-    [DynamicData(nameof(Odobravanje), DynamicDataSourceType.Method)]
+    [DynamicData(nameof(ZahtjevZaOpremuServicePodaci.Odobravanje), typeof(ZahtjevZaOpremuServicePodaci), DynamicDataSourceType.Method)]
     [TestCategory("DataDriven"), TestCategory("Mock")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
-    public async Task OdobriZahtjevAsync_ZahtjevNaCekanju_PostavljaPotvrdjenISnima(int id, Status ocekivaniStatus)
+    public async Task OdobriZahtjevAsync_ZahtjevNaCekanju_AzuriraZahtjevSaStatusomPotvrdjen(int id, Status ocekivaniStatus)
     {
         // Act
         await _servis.OdobriZahtjevAsync(id);
 
         // Assert
         _zahtjevRepo.Verify(r => r.Update(It.Is<ZahtjevZaOpremu>(z => z.ZahtjevId == id && z.Status == ocekivaniStatus)), Times.Once);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(ZahtjevZaOpremuServicePodaci.Odobravanje), typeof(ZahtjevZaOpremuServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Fatih Crljenkovic")]
+    public async Task OdobriZahtjevAsync_ZahtjevNaCekanju_SnimaPromjene(int id, Status ocekivaniStatus)
+    {
+        // Act
+        await _servis.OdobriZahtjevAsync(id);
+
+        // Assert
         _zahtjevRepo.Verify(r => r.SaveChangesAsync(), Times.Once);
     }
 
-    // ───────────── OdbijZahtjevAsync ─────────────
+    // ─── OdbijZahtjevAsync ────────────────────────────────────────────────
 
     [TestMethod]
-    [DynamicData(nameof(NepostojeciZahtjev), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Izuzetak")]
+    [DynamicData(nameof(ZahtjevZaOpremuServicePodaci.NepostojeciZahtjev), typeof(ZahtjevZaOpremuServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Izuzetak")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
     public async Task OdbijZahtjevAsync_ZahtjevNePostoji_BacaException(int id, string ocekivanaPoruka)
     {
@@ -222,66 +273,88 @@ public class ZahtjevZaOpremuServiceTests
     }
 
     [TestMethod]
-    [DynamicData(nameof(ObradjenZahtjev), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Izuzetak"), TestCategory("Mock")]
+    [DynamicData(nameof(ZahtjevZaOpremuServicePodaci.ObradjenZahtjev), typeof(ZahtjevZaOpremuServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Izuzetak")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
-    public async Task OdbijZahtjevAsync_ZahtjevVecObradjen_BacaExceptionINeSnima(int id, string ocekivanaPoruka)
+    public async Task OdbijZahtjevAsync_ZahtjevVecObradjen_BacaException(int id, string ocekivanaPoruka)
     {
         // Act
         var izuzetak = await Assert.ThrowsExceptionAsync<Exception>(() => _servis.OdbijZahtjevAsync(id));
 
         // Assert
         Assert.AreEqual(ocekivanaPoruka, izuzetak.Message);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(ZahtjevZaOpremuServicePodaci.ObradjenZahtjev), typeof(ZahtjevZaOpremuServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Fatih Crljenkovic")]
+    public async Task OdbijZahtjevAsync_ZahtjevVecObradjen_NeSnimaPromjene(int id, string ocekivanaPoruka)
+    {
+        // Act
+        await Assert.ThrowsExceptionAsync<Exception>(() => _servis.OdbijZahtjevAsync(id));
+
+        // Assert
         _zahtjevRepo.Verify(r => r.SaveChangesAsync(), Times.Never);
     }
 
     [TestMethod]
-    [DynamicData(nameof(Odbijanje), DynamicDataSourceType.Method)]
+    [DynamicData(nameof(ZahtjevZaOpremuServicePodaci.Odbijanje), typeof(ZahtjevZaOpremuServicePodaci), DynamicDataSourceType.Method)]
     [TestCategory("DataDriven"), TestCategory("Mock")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
-    public async Task OdbijZahtjevAsync_ZahtjevNaCekanju_PostavljaOtkazanISnima(int id, Status ocekivaniStatus)
+    public async Task OdbijZahtjevAsync_ZahtjevNaCekanju_AzuriraZahtjevSaStatusomOtkazan(int id, Status ocekivaniStatus)
     {
         // Act
         await _servis.OdbijZahtjevAsync(id);
 
         // Assert
         _zahtjevRepo.Verify(r => r.Update(It.Is<ZahtjevZaOpremu>(z => z.ZahtjevId == id && z.Status == ocekivaniStatus)), Times.Once);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(ZahtjevZaOpremuServicePodaci.Odbijanje), typeof(ZahtjevZaOpremuServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Fatih Crljenkovic")]
+    public async Task OdbijZahtjevAsync_ZahtjevNaCekanju_SnimaPromjene(int id, Status ocekivaniStatus)
+    {
+        // Act
+        await _servis.OdbijZahtjevAsync(id);
+
+        // Assert
         _zahtjevRepo.Verify(r => r.SaveChangesAsync(), Times.Once);
     }
 
-    // ───────────── Filtriranje ─────────────
+    // ─── Filtriranje ──────────────────────────────────────────────────────
 
     [TestMethod]
-    [DynamicData(nameof(PoStatusu), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven")]
+    [DynamicData(nameof(ZahtjevZaOpremuServicePodaci.PoStatusu), typeof(ZahtjevZaOpremuServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
-    public async Task GetZahtjeviPoStatusuAsync_ZadanStatus_VracaSamoZahtjeveTogStatusa(Status status, int ocekivaniBroj)
+    public async Task GetZahtjeviPoStatusuAsync_ZadanStatus_VracaSamoZahtjeveTogStatusa(Status status, int[] ocekivaniId)
     {
         // Act
-        var rezultat = (await _servis.GetZahtjeviPoStatusuAsync(status)).ToList();
+        var rezultat = await _servis.GetZahtjeviPoStatusuAsync(status);
 
         // Assert
-        Assert.AreEqual(ocekivaniBroj, rezultat.Count);
-        Assert.IsTrue(rezultat.All(z => z.Status == status));
+        CollectionAssert.AreEquivalent(ocekivaniId, rezultat.Select(z => z.ZahtjevId).ToArray());
     }
 
     [TestMethod]
-    [DynamicData(nameof(PoKategoriji), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven")]
+    [DynamicData(nameof(ZahtjevZaOpremuServicePodaci.PoKategoriji), typeof(ZahtjevZaOpremuServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
-    public async Task GetZahtjeviPoKategorijiAsync_ZadanaKategorija_VracaSamoZahtjeveTeKategorije(KategorijaOpreme kategorija, int ocekivaniBroj)
+    public async Task GetZahtjeviPoKategorijiAsync_ZadanaKategorija_VracaSamoZahtjeveTeKategorije(KategorijaOpreme kategorija, int[] ocekivaniId)
     {
         // Act
-        var rezultat = (await _servis.GetZahtjeviPoKategorijiAsync(kategorija)).ToList();
+        var rezultat = await _servis.GetZahtjeviPoKategorijiAsync(kategorija);
 
         // Assert
-        Assert.AreEqual(ocekivaniBroj, rezultat.Count);
-        Assert.IsTrue(rezultat.All(z => z.Kategorija == kategorija));
+        CollectionAssert.AreEquivalent(ocekivaniId, rezultat.Select(z => z.ZahtjevId).ToArray());
     }
 
     [TestMethod]
-    [DynamicData(nameof(PoHitnosti), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven")]
+    [DynamicData(nameof(ZahtjevZaOpremuServicePodaci.PoHitnosti), typeof(ZahtjevZaOpremuServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
     public async Task GetZahtjeviPoHitnostiAsync_ZahtjeviNaCekanju_VracaIhOdNajhitnijeg(int[] ocekivaniRedoslijedId)
     {
@@ -293,24 +366,23 @@ public class ZahtjevZaOpremuServiceTests
     }
 
     [TestMethod]
-    [DynamicData(nameof(ZahtjeviDoktora), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven")]
+    [DynamicData(nameof(ZahtjevZaOpremuServicePodaci.ZahtjeviDoktora), typeof(ZahtjevZaOpremuServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
-    public async Task GetZahtjeviDoktoraAsync_ZadanDoktor_VracaSamoNjegoveZahtjeve(string doktorId, int ocekivaniBroj)
+    public async Task GetZahtjeviDoktoraAsync_ZadanDoktor_VracaSamoNjegoveZahtjeve(string doktorId, int[] ocekivaniId)
     {
         // Act
-        var rezultat = (await _servis.GetZahtjeviDoktoraAsync(doktorId)).ToList();
+        var rezultat = await _servis.GetZahtjeviDoktoraAsync(doktorId);
 
         // Assert
-        Assert.AreEqual(ocekivaniBroj, rezultat.Count);
-        Assert.IsTrue(rezultat.All(z => z.DoktorID == doktorId));
+        CollectionAssert.AreEquivalent(ocekivaniId, rezultat.Select(z => z.ZahtjevId).ToArray());
     }
 
-    // ───────────── GetDoktoriAsync (koristi IKorisnikRepository) ─────────────
+    // ─── GetDoktoriAsync (IKorisnikRepository) ────────────────────────────
 
     [TestMethod]
-    [DynamicData(nameof(Korisnici), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [DynamicData(nameof(ZahtjevZaOpremuServicePodaci.Korisnici), typeof(ZahtjevZaOpremuServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
     public async Task GetDoktoriAsync_RazliciteUloge_VracaSamoKorisnikeSaSpecijalizacijom(List<Korisnik> korisnici, int ocekivaniBrojDoktora)
     {
@@ -318,18 +390,33 @@ public class ZahtjevZaOpremuServiceTests
         _korisnikRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(korisnici);
 
         // Act
-        var rezultat = (await _servis.GetDoktoriAsync()).ToList();
+        var rezultat = await _servis.GetDoktoriAsync();
 
         // Assert
-        Assert.AreEqual(ocekivaniBrojDoktora, rezultat.Count);
+        Assert.AreEqual(ocekivaniBrojDoktora, rezultat.Count());
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(ZahtjevZaOpremuServicePodaci.Korisnici), typeof(ZahtjevZaOpremuServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Fatih Crljenkovic")]
+    public async Task GetDoktoriAsync_RazliciteUloge_CitaKorisnikeIzRepozitorija(List<Korisnik> korisnici, int ocekivaniBrojDoktora)
+    {
+        // Arrange
+        _korisnikRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(korisnici);
+
+        // Act
+        await _servis.GetDoktoriAsync();
+
+        // Assert
         _korisnikRepo.Verify(r => r.GetAllAsync(), Times.Once);
     }
 
-    // ───────────── Metode koje samo prosljeđuju repozitoriju ─────────────
+    // ─── Metode koje samo prosljeđuju repozitoriju ────────────────────────
 
     [TestMethod]
-    [DynamicData(nameof(PostojeciZahtjev), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [DynamicData(nameof(ZahtjevZaOpremuServicePodaci.PostojeciZahtjev), typeof(ZahtjevZaOpremuServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
     public async Task GetByIdAsync_ZahtjevPostoji_VracaZahtjevIzRepozitorija(int id, string ocekivaniNaziv)
     {
@@ -337,13 +424,26 @@ public class ZahtjevZaOpremuServiceTests
         var rezultat = await _servis.GetByIdAsync(id);
 
         // Assert
-        Assert.AreEqual(ocekivaniNaziv, rezultat!.Naziv);
+        Assert.IsNotNull(rezultat);
+        Assert.AreEqual(ocekivaniNaziv, rezultat.Naziv);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(ZahtjevZaOpremuServicePodaci.PostojeciZahtjev), typeof(ZahtjevZaOpremuServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Fatih Crljenkovic")]
+    public async Task GetByIdAsync_ZahtjevPostoji_PozivaRepozitorijSIstimId(int id, string ocekivaniNaziv)
+    {
+        // Act
+        await _servis.GetByIdAsync(id);
+
+        // Assert
         _zahtjevRepo.Verify(r => r.GetByIdAsync(id), Times.Once);
     }
 
     [TestMethod]
-    [DynamicData(nameof(SviZahtjevi), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [DynamicData(nameof(ZahtjevZaOpremuServicePodaci.SviZahtjevi), typeof(ZahtjevZaOpremuServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
     public async Task GetAllAsync_PostojeZahtjevi_VracaSveZahtjeve(int ocekivaniBroj)
     {
@@ -352,44 +452,56 @@ public class ZahtjevZaOpremuServiceTests
 
         // Assert
         Assert.AreEqual(ocekivaniBroj, rezultat.Count());
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(ZahtjevZaOpremuServicePodaci.SviZahtjevi), typeof(ZahtjevZaOpremuServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Fatih Crljenkovic")]
+    public async Task GetAllAsync_PostojeZahtjevi_PozivaRepozitorij(int ocekivaniBroj)
+    {
+        // Act
+        await _servis.GetAllAsync();
+
+        // Assert
         _zahtjevRepo.Verify(r => r.GetAllAsync(), Times.Once);
     }
 
     [TestMethod]
-    [DynamicData(nameof(PostojeciZahtjev), DynamicDataSourceType.Method)]
+    [DynamicData(nameof(ZahtjevZaOpremuServicePodaci.PostojeciZahtjev), typeof(ZahtjevZaOpremuServicePodaci), DynamicDataSourceType.Method)]
     [TestCategory("DataDriven"), TestCategory("Mock")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
-    public async Task Update_PostojeciZahtjev_PozivaUpdateURepozitoriju(int id, string ocekivaniNaziv)
+    public void Update_PostojeciZahtjev_PozivaUpdateURepozitoriju(int id, string naziv)
     {
         // Arrange
-        var zahtjev = await _servis.GetByIdAsync(id);
+        var zahtjev = new ZahtjevZaOpremu { ZahtjevId = id, Naziv = naziv };
 
         // Act
-        _servis.Update(zahtjev!);
+        _servis.Update(zahtjev);
 
         // Assert
-        _zahtjevRepo.Verify(r => r.Update(It.Is<ZahtjevZaOpremu>(z => z.Naziv == ocekivaniNaziv)), Times.Once);
+        _zahtjevRepo.Verify(r => r.Update(zahtjev), Times.Once);
     }
 
     [TestMethod]
-    [DynamicData(nameof(PostojeciZahtjev), DynamicDataSourceType.Method)]
+    [DynamicData(nameof(ZahtjevZaOpremuServicePodaci.PostojeciZahtjev), typeof(ZahtjevZaOpremuServicePodaci), DynamicDataSourceType.Method)]
     [TestCategory("DataDriven"), TestCategory("Mock")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
-    public async Task Delete_PostojeciZahtjev_PozivaDeleteURepozitoriju(int id, string ocekivaniNaziv)
+    public void Delete_PostojeciZahtjev_PozivaDeleteURepozitoriju(int id, string naziv)
     {
         // Arrange
-        var zahtjev = await _servis.GetByIdAsync(id);
+        var zahtjev = new ZahtjevZaOpremu { ZahtjevId = id, Naziv = naziv };
 
         // Act
-        _servis.Delete(zahtjev!);
+        _servis.Delete(zahtjev);
 
         // Assert
-        _zahtjevRepo.Verify(r => r.Delete(It.Is<ZahtjevZaOpremu>(z => z.Naziv == ocekivaniNaziv)), Times.Once);
+        _zahtjevRepo.Verify(r => r.Delete(zahtjev), Times.Once);
     }
 
     [TestMethod]
-    [DynamicData(nameof(Snimanje), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [DynamicData(nameof(ZahtjevZaOpremuServicePodaci.Snimanje), typeof(ZahtjevZaOpremuServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
     public async Task SaveChangesAsync_RepozitorijSnimiPromjene_VracaBrojPromjena(int brojPromjena)
     {
@@ -401,6 +513,21 @@ public class ZahtjevZaOpremuServiceTests
 
         // Assert
         Assert.AreEqual(brojPromjena, rezultat);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(ZahtjevZaOpremuServicePodaci.Snimanje), typeof(ZahtjevZaOpremuServicePodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Fatih Crljenkovic")]
+    public async Task SaveChangesAsync_Poziv_PozivaRepozitorij(int brojPromjena)
+    {
+        // Arrange
+        _zahtjevRepo.Setup(r => r.SaveChangesAsync()).ReturnsAsync(brojPromjena);
+
+        // Act
+        await _servis.SaveChangesAsync();
+
+        // Assert
         _zahtjevRepo.Verify(r => r.SaveChangesAsync(), Times.Once);
     }
 }

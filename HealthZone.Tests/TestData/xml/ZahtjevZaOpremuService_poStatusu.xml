@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <filteri>
-  <filter><status>NaCekanju</status><ocekivaniBroj>4</ocekivaniBroj></filter>
-  <filter><status>Potvrdjen</status><ocekivaniBroj>2</ocekivaniBroj></filter>
-  <filter><status>Otkazan</status><ocekivaniBroj>1</ocekivaniBroj></filter>
-  <filter><status>Aktivan</status><ocekivaniBroj>0</ocekivaniBroj></filter>
+  <filter><status>NaCekanju</status><ocekivaniId>1,3,5,6</ocekivaniId></filter>
+  <filter><status>Potvrdjen</status><ocekivaniId>2,7</ocekivaniId></filter>
+  <filter><status>Otkazan</status><ocekivaniId>4</ocekivaniId></filter>
+  <filter><status>Aktivan</status><ocekivaniId></ocekivaniId></filter>
 </filteri>
