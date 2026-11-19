@@ -12,72 +12,51 @@ using Moq;
 
 namespace HealthZone.Tests;
 
-[TestClass]
-public class RecenzijaControllerTests
+// ─── Izvori podataka i pomoćne metode za RecenzijaControllerTests ───────
+public static class RecenzijaControllerPodaci
 {
-    private Mock<IRecenzijaService> _recenzijaServis = null!;
-    private Mock<IKorisnikService> _korisnikServis = null!;
-    private Mock<UserManager<Korisnik>> _userManager = null!;
-    private RecenzijaController _controller = null!;
-    private List<Recenzija> _recenzije = null!;
-    private List<Korisnik> _doktori = null!;
+    // ── pomoćne metode ──
 
-    [TestInitialize]
-    public void Setup()
-    {
-        // "Baza" recenzija i doktora se čita iz XML-a za svaki test ispočetka.
-        _recenzije = XmlLoader.Ucitaj("RecenzijaController_recenzije.xml", "recenzija").Select(NapraviRecenziju).ToList();
-        _doktori = XmlLoader.Ucitaj("RecenzijaController_doktori.xml", "doktor").Select(NapraviDoktora).ToList();
-
-        _recenzijaServis = new Mock<IRecenzijaService>();
-        _recenzijaServis.Setup(s => s.GetAllAsync()).ReturnsAsync(_recenzije);
-        _recenzijaServis.Setup(s => s.GetByIdAsync(It.IsAny<int>()))
-                        .ReturnsAsync((int id) => _recenzije.FirstOrDefault(r => r.RecenzijaId == id));
-        _recenzijaServis.Setup(s => s.GetRecenzijeDoktoraAsync(It.IsAny<string>()))
-                        .ReturnsAsync((string doktorId) => _recenzije.Where(r => r.DoktorID == doktorId).ToList());
-
-        _korisnikServis = new Mock<IKorisnikService>();
-        _korisnikServis.Setup(s => s.GetDoktoriAsync()).ReturnsAsync(_doktori);
-        _korisnikServis.Setup(s => s.GetDoktorByIdAsync(It.IsAny<string>()))
-                       .ReturnsAsync((string id) => _doktori.FirstOrDefault(d => d.Id == id));
-
-        // UserManager je klasa, pa mu treba poseban konstruktor (isto kao u KorisnikServiceTests).
-        _userManager = new Mock<UserManager<Korisnik>>(Mock.Of<IUserStore<Korisnik>>(),
-            null!, null!, null!, null!, null!, null!, null!, null!);
-
-        _controller = new RecenzijaController(_recenzijaServis.Object, _korisnikServis.Object, _userManager.Object)
-        {
-            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
-            TempData = new TempDataDictionary(new DefaultHttpContext(), Mock.Of<ITempDataProvider>())
-        };
-    }
-
-    // ───────────── Pomoćne metode ─────────────
-
-    private static Recenzija NapraviRecenziju(XElement x) => new Recenzija
+    public static Recenzija NapraviRecenziju(XElement x) => new()
     {
         RecenzijaId = (int)x.Element("id")!,
         PacijentID = (string)x.Element("pacijentId")!,
         DoktorID = (string)x.Element("doktorId")!
     };
 
-    private static Korisnik NapraviDoktora(XElement x) => new Korisnik
+    public static Korisnik NapraviDoktora(XElement x) => new()
     {
         Id = (string)x.Element("id")!,
         Ime = (string)x.Element("ime")!,
         Prezime = (string)x.Element("prezime")!
     };
 
+    // UserManager je klasa, pa mu Moq treba poseban konstruktor.
+    public static Mock<UserManager<Korisnik>> NapraviUserManager()
+        => new(Mock.Of<IUserStore<Korisnik>>(), null!, null!, null!, null!, null!, null!, null!, null!);
+
     // Prijavljuje korisnika s ulogom: User dobija claimove, a UserManager.GetUserAsync vraća tog korisnika.
-    private void Prijavi(string korisnikId, string uloga)
+    public static void Prijavi(Controller controller, Mock<UserManager<Korisnik>> userManager, string korisnikId, string uloga)
     {
-        _controller.ControllerContext.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity(
+        controller.ControllerContext.HttpContext.User = new ClaimsPrincipal(new ClaimsIdentity(
             new[] { new Claim(ClaimTypes.NameIdentifier, korisnikId), new Claim(ClaimTypes.Role, uloga) }, "Test"));
-        _userManager.Setup(u => u.GetUserAsync(It.IsAny<ClaimsPrincipal>()))
-                    .ReturnsAsync(new Korisnik { Id = korisnikId });
+        userManager.Setup(u => u.GetUserAsync(It.IsAny<ClaimsPrincipal>()))
+                   .ReturnsAsync(new Korisnik { Id = korisnikId });
     }
 
-    // ───────────── Izvori podataka (CSV) ─────────────
+    // Naziv uloge pacijenta (koristi se u više testova), iz CSV-a.
+    public static string UlogaPacijenta() =>
+        CsvLoader.Ucitaj("RecenzijaController_ulogaPacijenta.csv").Single()[0];
+
+    public static Recenzija NapraviNovuRecenziju(string doktorId, int ljubaznost, int profesionalnost, int usluga) => new()
+    {
+        DoktorID = doktorId,
+        OcjenaLjubaznosti = ljubaznost,
+        OcjenaProfesionalnosti = profesionalnost,
+        OcjenaUsluge = usluga
+    };
+
+    // ── izvori podataka (CSV) ──
 
     public static IEnumerable<object[]> SveRecenzije() =>
         CsvLoader.Ucitaj("RecenzijaController_sveRecenzije.csv").Select(r => new object[] { int.Parse(r[0]) });
@@ -118,16 +97,69 @@ public class RecenzijaControllerTests
 
     public static IEnumerable<object[]> NepostojecaRecenzija() =>
         CsvLoader.Ucitaj("RecenzijaController_nepostojecaRecenzija.csv").Select(r => new object[] { int.Parse(r[0]), r[1], r[2] });
+}
 
-    // Naziv uloge pacijenta (koristi se u više testova), također iz CSV-a.
-    private static string UlogaPacijenta() =>
-        CsvLoader.Ucitaj("RecenzijaController_ulogaPacijenta.csv").Single()[0];
+// ─── Testovi ────────────────────────────────────────────────────────────
+[TestClass]
+public class RecenzijaControllerTests
+{
+    // XML "baza" (samo za čitanje): recenzije i doktori.
+    private static List<XElement> _bazaRecenzija = null!;
+    private static List<XElement> _bazaDoktora = null!;
 
-    // ───────────── Index ─────────────
+    private Mock<IRecenzijaService> _recenzijaServis = null!;
+    private Mock<IKorisnikService> _korisnikServis = null!;
+    private Mock<UserManager<Korisnik>> _userManager = null!;
+    private RecenzijaController _controller = null!;
+
+    [ClassInitialize]
+    public static void ClassInit(TestContext context)
+    {
+        _bazaRecenzija = XmlLoader.Ucitaj("RecenzijaController_recenzije.xml", "recenzija").ToList();
+        _bazaDoktora = XmlLoader.Ucitaj("RecenzijaController_doktori.xml", "doktor").ToList();
+    }
+
+    [TestInitialize]
+    public void Setup()
+    {
+        var recenzije = _bazaRecenzija.Select(RecenzijaControllerPodaci.NapraviRecenziju).ToList();
+        var doktori = _bazaDoktora.Select(RecenzijaControllerPodaci.NapraviDoktora).ToList();
+
+        _recenzijaServis = new Mock<IRecenzijaService>();
+        _recenzijaServis.Setup(s => s.GetAllAsync()).ReturnsAsync(recenzije);
+        _recenzijaServis.Setup(s => s.GetByIdAsync(It.IsAny<int>()))
+                        .ReturnsAsync((int id) => recenzije.FirstOrDefault(r => r.RecenzijaId == id));
+        _recenzijaServis.Setup(s => s.GetRecenzijeDoktoraAsync(It.IsAny<string>()))
+                        .ReturnsAsync((string doktorId) => recenzije.Where(r => r.DoktorID == doktorId).ToList());
+
+        _korisnikServis = new Mock<IKorisnikService>();
+        _korisnikServis.Setup(s => s.GetDoktoriAsync()).ReturnsAsync(doktori);
+        _korisnikServis.Setup(s => s.GetDoktorByIdAsync(It.IsAny<string>()))
+                       .ReturnsAsync((string id) => doktori.FirstOrDefault(d => d.Id == id));
+
+        _userManager = RecenzijaControllerPodaci.NapraviUserManager();
+
+        _controller = new RecenzijaController(_recenzijaServis.Object, _korisnikServis.Object, _userManager.Object)
+        {
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
+            TempData = new TempDataDictionary(new DefaultHttpContext(), Mock.Of<ITempDataProvider>())
+        };
+    }
+
+    [TestCleanup]
+    public void Cleanup()
+    {
+        _controller.Dispose();
+        _recenzijaServis.Reset();
+        _korisnikServis.Reset();
+        _userManager.Reset();
+    }
+
+    // ─── Index ────────────────────────────────────────────────────────────
 
     [TestMethod]
-    [DynamicData(nameof(SveRecenzije), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [DynamicData(nameof(RecenzijaControllerPodaci.SveRecenzije), typeof(RecenzijaControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
     [Priority(1)]
     public async Task Index_PostojeRecenzije_VracaViewSaSvimRecenzijama(int brojRecenzija)
@@ -137,14 +169,26 @@ public class RecenzijaControllerTests
 
         // Assert
         Assert.AreEqual(brojRecenzija, ((IEnumerable<Recenzija>)rezultat.Model!).Count());
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(RecenzijaControllerPodaci.SveRecenzije), typeof(RecenzijaControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Fatih Crljenkovic")]
+    public async Task Index_PostojeRecenzije_TraziRecenzijeOdServisa(int brojRecenzija)
+    {
+        // Act
+        await _controller.Index();
+
+        // Assert
         _recenzijaServis.Verify(s => s.GetAllAsync(), Times.Once);
     }
 
-    // ───────────── RecenzijeDoktora ─────────────
+    // ─── RecenzijeDoktora ─────────────────────────────────────────────────
 
     [TestMethod]
-    [DynamicData(nameof(NepostojeciDoktor), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [DynamicData(nameof(RecenzijaControllerPodaci.NepostojeciDoktor), typeof(RecenzijaControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
     public async Task RecenzijeDoktora_DoktorNePostoji_VracaNotFound(string doktorId)
     {
@@ -153,26 +197,50 @@ public class RecenzijaControllerTests
 
         // Assert
         Assert.IsInstanceOfType(rezultat, typeof(NotFoundResult));
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(RecenzijaControllerPodaci.NepostojeciDoktor), typeof(RecenzijaControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Fatih Crljenkovic")]
+    public async Task RecenzijeDoktora_DoktorNePostoji_NeTraziRecenzije(string doktorId)
+    {
+        // Act
+        await _controller.RecenzijeDoktora(doktorId);
+
+        // Assert
         _recenzijaServis.Verify(s => s.GetRecenzijeDoktoraAsync(It.IsAny<string>()), Times.Never);
     }
 
     [TestMethod]
-    [DynamicData(nameof(RecenzijeDoktora), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [DynamicData(nameof(RecenzijaControllerPodaci.RecenzijeDoktora), typeof(RecenzijaControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
-    public async Task RecenzijeDoktora_DoktorPostoji_VracaNjegoveRecenzijeIOcjene(string doktorId, int brojRecenzija)
+    public async Task RecenzijeDoktora_DoktorPostoji_VracaNjegoveRecenzije(string doktorId, int brojRecenzija)
     {
         // Act
         var rezultat = (ViewResult)await _controller.RecenzijeDoktora(doktorId);
 
         // Assert
         Assert.AreEqual(brojRecenzija, ((IEnumerable<Recenzija>)rezultat.Model!).Count());
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(RecenzijaControllerPodaci.RecenzijeDoktora), typeof(RecenzijaControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Fatih Crljenkovic")]
+    public async Task RecenzijeDoktora_DoktorPostoji_TraziProsjecneOcjene(string doktorId, int brojRecenzija)
+    {
+        // Act
+        await _controller.RecenzijeDoktora(doktorId);
+
+        // Assert
         _recenzijaServis.Verify(s => s.GetProsjecneOcjeneAsync(doktorId), Times.Once);
     }
 
     [TestMethod]
-    [DynamicData(nameof(RecenzijeDoktora), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven")]
+    [DynamicData(nameof(RecenzijaControllerPodaci.RecenzijeDoktora), typeof(RecenzijaControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
     public async Task RecenzijeDoktora_DoktorPostoji_UViewBagStavljaDoktora(string doktorId, int brojRecenzija)
     {
@@ -184,13 +252,13 @@ public class RecenzijaControllerTests
     }
 
     [TestMethod]
-    [DynamicData(nameof(Uloga), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven")]
+    [DynamicData(nameof(RecenzijaControllerPodaci.Uloga), typeof(RecenzijaControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Autorizacija")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
     public async Task RecenzijeDoktora_RazliciteUloge_SamoPacijentMozeOstavitiRecenziju(string doktorId, string uloga, bool mozeOstaviti)
     {
         // Arrange
-        Prijavi(doktorId, uloga);
+        RecenzijaControllerPodaci.Prijavi(_controller, _userManager, doktorId, uloga);
 
         // Act
         await _controller.RecenzijeDoktora(doktorId);
@@ -199,82 +267,114 @@ public class RecenzijaControllerTests
         Assert.AreEqual(mozeOstaviti, (bool)_controller.ViewBag.MozeOstaviti);
     }
 
-    // ───────────── MojeRecenzije ─────────────
+    // ─── MojeRecenzije ────────────────────────────────────────────────────
 
     [TestMethod]
-    [DynamicData(nameof(RecenzijeDoktora), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [DynamicData(nameof(RecenzijaControllerPodaci.RecenzijeDoktora), typeof(RecenzijaControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
     public async Task MojeRecenzije_PrijavljenDoktor_VracaSamoNjegoveRecenzije(string doktorId, int brojRecenzija)
     {
         // Arrange
-        Prijavi(doktorId, string.Empty);
+        RecenzijaControllerPodaci.Prijavi(_controller, _userManager, doktorId, string.Empty);
 
         // Act
         var rezultat = (ViewResult)await _controller.MojeRecenzije();
 
         // Assert
         Assert.AreEqual(brojRecenzija, ((IEnumerable<Recenzija>)rezultat.Model!).Count());
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(RecenzijaControllerPodaci.RecenzijeDoktora), typeof(RecenzijaControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Fatih Crljenkovic")]
+    public async Task MojeRecenzije_PrijavljenDoktor_TraziNjegoveProsjecneOcjene(string doktorId, int brojRecenzija)
+    {
+        // Arrange
+        RecenzijaControllerPodaci.Prijavi(_controller, _userManager, doktorId, string.Empty);
+
+        // Act
+        await _controller.MojeRecenzije();
+
+        // Assert
         _recenzijaServis.Verify(s => s.GetProsjecneOcjeneAsync(doktorId), Times.Once);
     }
 
-    // ───────────── Create ─────────────
+    // ─── Create (GET) ─────────────────────────────────────────────────────
 
     [TestMethod]
-    [DynamicData(nameof(OdabraniDoktor), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [DynamicData(nameof(RecenzijaControllerPodaci.OdabraniDoktor), typeof(RecenzijaControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
-    public async Task Create_Get_PuniListuDoktoraSaOdabranim(string doktorId, int brojDoktora)
+    public async Task Create_Get_PuniListuSvimDoktorima(string doktorId, int brojDoktora)
     {
         // Act
         await _controller.Create(doktorId);
 
         // Assert
-        var lista = (SelectList)_controller.ViewData["DoktorID"]!;
-        Assert.AreEqual(brojDoktora, lista.Count());
-        Assert.AreEqual(doktorId, lista.SelectedValue);
+        Assert.AreEqual(brojDoktora, ((SelectList)_controller.ViewData["DoktorID"]!).Count());
     }
 
     [TestMethod]
-    [DynamicData(nameof(NovaRecenzija), DynamicDataSourceType.Method)]
+    [DynamicData(nameof(RecenzijaControllerPodaci.OdabraniDoktor), typeof(RecenzijaControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
+    [TestProperty("Autor", "Fatih Crljenkovic")]
+    public async Task Create_Get_OznacavaOdabranogDoktora(string doktorId, int brojDoktora)
+    {
+        // Act
+        await _controller.Create(doktorId);
+
+        // Assert
+        Assert.AreEqual(doktorId, ((SelectList)_controller.ViewData["DoktorID"]!).SelectedValue);
+    }
+
+    // ─── Create (POST) ────────────────────────────────────────────────────
+
+    [TestMethod]
+    [DynamicData(nameof(RecenzijaControllerPodaci.NovaRecenzija), typeof(RecenzijaControllerPodaci), DynamicDataSourceType.Method)]
     [TestCategory("DataDriven"), TestCategory("Mock")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
     [Timeout(2000)]
     public async Task Create_ValidnaRecenzija_DodajeRecenzijuPrijavljenogPacijenta(string pacijentId, string doktorId, int ljubaznost, int profesionalnost, int usluga)
     {
         // Arrange
-        Prijavi(pacijentId, UlogaPacijenta());
-        var recenzija = new Recenzija
-        {
-            DoktorID = doktorId,
-            OcjenaLjubaznosti = ljubaznost,
-            OcjenaProfesionalnosti = profesionalnost,
-            OcjenaUsluge = usluga
-        };
+        RecenzijaControllerPodaci.Prijavi(_controller, _userManager, pacijentId, RecenzijaControllerPodaci.UlogaPacijenta());
+        var recenzija = RecenzijaControllerPodaci.NapraviNovuRecenziju(doktorId, ljubaznost, profesionalnost, usluga);
+
+        // Act
+        await _controller.Create(recenzija);
+
+        // Assert
+        _recenzijaServis.Verify(s => s.AddAsync(It.Is<Recenzija>(r => r.PacijentID == pacijentId && r.DoktorID == doktorId)), Times.Once);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(RecenzijaControllerPodaci.NovaRecenzija), typeof(RecenzijaControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
+    [TestProperty("Autor", "Fatih Crljenkovic")]
+    public async Task Create_ValidnaRecenzija_PreusmjeravaNaIndex(string pacijentId, string doktorId, int ljubaznost, int profesionalnost, int usluga)
+    {
+        // Arrange
+        RecenzijaControllerPodaci.Prijavi(_controller, _userManager, pacijentId, RecenzijaControllerPodaci.UlogaPacijenta());
+        var recenzija = RecenzijaControllerPodaci.NapraviNovuRecenziju(doktorId, ljubaznost, profesionalnost, usluga);
 
         // Act
         var rezultat = (RedirectToActionResult)await _controller.Create(recenzija);
 
         // Assert
         Assert.AreEqual(nameof(RecenzijaController.Index), rezultat.ActionName);
-        _recenzijaServis.Verify(s => s.AddAsync(It.Is<Recenzija>(r => r.PacijentID == pacijentId && r.DoktorID == doktorId)), Times.Once);
     }
 
     [TestMethod]
-    [DynamicData(nameof(NovaRecenzija), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven")]
+    [DynamicData(nameof(RecenzijaControllerPodaci.NovaRecenzija), typeof(RecenzijaControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
     public async Task Create_ValidnaRecenzija_PostavljaPorukuOUspjehu(string pacijentId, string doktorId, int ljubaznost, int profesionalnost, int usluga)
     {
         // Arrange
-        Prijavi(pacijentId, UlogaPacijenta());
-        var recenzija = new Recenzija
-        {
-            DoktorID = doktorId,
-            OcjenaLjubaznosti = ljubaznost,
-            OcjenaProfesionalnosti = profesionalnost,
-            OcjenaUsluge = usluga
-        };
+        RecenzijaControllerPodaci.Prijavi(_controller, _userManager, pacijentId, RecenzijaControllerPodaci.UlogaPacijenta());
+        var recenzija = RecenzijaControllerPodaci.NapraviNovuRecenziju(doktorId, ljubaznost, profesionalnost, usluga);
 
         // Act
         await _controller.Create(recenzija);
@@ -284,13 +384,13 @@ public class RecenzijaControllerTests
     }
 
     [TestMethod]
-    [DynamicData(nameof(GreskaServisa), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Mock"), TestCategory("Izuzetak")]
+    [DynamicData(nameof(RecenzijaControllerPodaci.GreskaServisa), typeof(RecenzijaControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Izuzetak")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
     public async Task Create_ServisBaciIzuzetak_PorukaIdeUModelState(string pacijentId, string doktorId, string poruka)
     {
         // Arrange
-        Prijavi(pacijentId, UlogaPacijenta());
+        RecenzijaControllerPodaci.Prijavi(_controller, _userManager, pacijentId, RecenzijaControllerPodaci.UlogaPacijenta());
         var recenzija = new Recenzija { DoktorID = doktorId };
         _recenzijaServis.Setup(s => s.AddAsync(recenzija)).ThrowsAsync(new Exception(poruka));
 
@@ -302,13 +402,13 @@ public class RecenzijaControllerTests
     }
 
     [TestMethod]
-    [DynamicData(nameof(NevalidanModel), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [DynamicData(nameof(RecenzijaControllerPodaci.NevalidanModel), typeof(RecenzijaControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
-    public async Task Create_NevalidanModel_VracaFormuINeDodaje(string pacijentId, string polje, string greska)
+    public async Task Create_NevalidanModel_VracaIstuFormu(string pacijentId, string polje, string greska)
     {
         // Arrange
-        Prijavi(pacijentId, UlogaPacijenta());
+        RecenzijaControllerPodaci.Prijavi(_controller, _userManager, pacijentId, RecenzijaControllerPodaci.UlogaPacijenta());
         var recenzija = new Recenzija();
         _controller.ModelState.AddModelError(polje, greska);
 
@@ -317,17 +417,34 @@ public class RecenzijaControllerTests
 
         // Assert
         Assert.AreSame(recenzija, rezultat.Model);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(RecenzijaControllerPodaci.NevalidanModel), typeof(RecenzijaControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Fatih Crljenkovic")]
+    public async Task Create_NevalidanModel_NeDodajeRecenziju(string pacijentId, string polje, string greska)
+    {
+        // Arrange
+        RecenzijaControllerPodaci.Prijavi(_controller, _userManager, pacijentId, RecenzijaControllerPodaci.UlogaPacijenta());
+        var recenzija = new Recenzija();
+        _controller.ModelState.AddModelError(polje, greska);
+
+        // Act
+        await _controller.Create(recenzija);
+
+        // Assert
         _recenzijaServis.Verify(s => s.AddAsync(It.IsAny<Recenzija>()), Times.Never);
     }
 
     [TestMethod]
-    [DynamicData(nameof(IgnorisanoPolje), DynamicDataSourceType.Method)]
+    [DynamicData(nameof(RecenzijaControllerPodaci.IgnorisanoPolje), typeof(RecenzijaControllerPodaci), DynamicDataSourceType.Method)]
     [TestCategory("DataDriven"), TestCategory("Mock")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
     public async Task Create_GreskaNaPacijentId_IpakDodajeRecenziju(string pacijentId, string polje, string greska)
     {
         // Arrange
-        Prijavi(pacijentId, UlogaPacijenta());
+        RecenzijaControllerPodaci.Prijavi(_controller, _userManager, pacijentId, RecenzijaControllerPodaci.UlogaPacijenta());
         var recenzija = new Recenzija();
         _controller.ModelState.AddModelError(polje, greska);
 
@@ -338,73 +455,133 @@ public class RecenzijaControllerTests
         _recenzijaServis.Verify(s => s.AddAsync(recenzija), Times.Once);
     }
 
-    // ───────────── DeleteConfirmed ─────────────
+    // ─── DeleteConfirmed ──────────────────────────────────────────────────
 
     [TestMethod]
-    [DynamicData(nameof(NepostojecaRecenzija), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [DynamicData(nameof(RecenzijaControllerPodaci.NepostojecaRecenzija), typeof(RecenzijaControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
-    public async Task DeleteConfirmed_RecenzijaNePostoji_NistaNeBriseIPreusmjerava(int id, string korisnikId, string uloga)
+    public async Task DeleteConfirmed_RecenzijaNePostoji_PreusmjeravaNaIndex(int id, string korisnikId, string uloga)
     {
         // Arrange
-        Prijavi(korisnikId, uloga);
+        RecenzijaControllerPodaci.Prijavi(_controller, _userManager, korisnikId, uloga);
 
         // Act
         var rezultat = (RedirectToActionResult)await _controller.DeleteConfirmed(id);
 
         // Assert
         Assert.AreEqual(nameof(RecenzijaController.Index), rezultat.ActionName);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(RecenzijaControllerPodaci.NepostojecaRecenzija), typeof(RecenzijaControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Fatih Crljenkovic")]
+    public async Task DeleteConfirmed_RecenzijaNePostoji_NistaNeBrise(int id, string korisnikId, string uloga)
+    {
+        // Arrange
+        RecenzijaControllerPodaci.Prijavi(_controller, _userManager, korisnikId, uloga);
+
+        // Act
+        await _controller.DeleteConfirmed(id);
+
+        // Assert
         _recenzijaServis.Verify(s => s.Delete(It.IsAny<Recenzija>()), Times.Never);
     }
 
     [TestMethod]
-    [DynamicData(nameof(TudjaRecenzija), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [DynamicData(nameof(RecenzijaControllerPodaci.TudjaRecenzija), typeof(RecenzijaControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Autorizacija")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
     public async Task DeleteConfirmed_PacijentBriseTudjuRecenziju_VracaForbid(int id, string pacijentId)
     {
         // Arrange
-        Prijavi(pacijentId, UlogaPacijenta());
+        RecenzijaControllerPodaci.Prijavi(_controller, _userManager, pacijentId, RecenzijaControllerPodaci.UlogaPacijenta());
 
         // Act
         var rezultat = await _controller.DeleteConfirmed(id);
 
         // Assert
         Assert.IsInstanceOfType(rezultat, typeof(ForbidResult));
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(RecenzijaControllerPodaci.TudjaRecenzija), typeof(RecenzijaControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock"), TestCategory("Autorizacija")]
+    [TestProperty("Autor", "Fatih Crljenkovic")]
+    public async Task DeleteConfirmed_PacijentBriseTudjuRecenziju_NeBriseRecenziju(int id, string pacijentId)
+    {
+        // Arrange
+        RecenzijaControllerPodaci.Prijavi(_controller, _userManager, pacijentId, RecenzijaControllerPodaci.UlogaPacijenta());
+
+        // Act
+        await _controller.DeleteConfirmed(id);
+
+        // Assert
         _recenzijaServis.Verify(s => s.Delete(It.IsAny<Recenzija>()), Times.Never);
     }
 
     [TestMethod]
-    [DynamicData(nameof(VlastitaRecenzija), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [DynamicData(nameof(RecenzijaControllerPodaci.VlastitaRecenzija), typeof(RecenzijaControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock"), TestCategory("Autorizacija")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
-    public async Task DeleteConfirmed_PacijentBriseSvojuRecenziju_BriseISnima(int id, string pacijentId)
+    public async Task DeleteConfirmed_PacijentBriseSvojuRecenziju_BriseRecenziju(int id, string pacijentId)
     {
         // Arrange
-        Prijavi(pacijentId, UlogaPacijenta());
+        RecenzijaControllerPodaci.Prijavi(_controller, _userManager, pacijentId, RecenzijaControllerPodaci.UlogaPacijenta());
 
         // Act
         await _controller.DeleteConfirmed(id);
 
         // Assert
         _recenzijaServis.Verify(s => s.Delete(It.Is<Recenzija>(r => r.RecenzijaId == id)), Times.Once);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(RecenzijaControllerPodaci.VlastitaRecenzija), typeof(RecenzijaControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [TestProperty("Autor", "Fatih Crljenkovic")]
+    public async Task DeleteConfirmed_PacijentBriseSvojuRecenziju_SnimaPromjene(int id, string pacijentId)
+    {
+        // Arrange
+        RecenzijaControllerPodaci.Prijavi(_controller, _userManager, pacijentId, RecenzijaControllerPodaci.UlogaPacijenta());
+
+        // Act
+        await _controller.DeleteConfirmed(id);
+
+        // Assert
         _recenzijaServis.Verify(s => s.SaveChangesAsync(), Times.Once);
     }
 
     [TestMethod]
-    [DynamicData(nameof(AdminBrisanje), DynamicDataSourceType.Method)]
-    [TestCategory("DataDriven"), TestCategory("Mock")]
+    [DynamicData(nameof(RecenzijaControllerPodaci.AdminBrisanje), typeof(RecenzijaControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Autorizacija")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
-    public async Task DeleteConfirmed_AdministratorBriseBiloKojuRecenziju_BriseISnima(int id, string adminId, string uloga)
+    public async Task DeleteConfirmed_AdministratorBriseBiloKojuRecenziju_PreusmjeravaNaIndex(int id, string adminId, string uloga)
     {
         // Arrange
-        Prijavi(adminId, uloga);
+        RecenzijaControllerPodaci.Prijavi(_controller, _userManager, adminId, uloga);
 
         // Act
         var rezultat = (RedirectToActionResult)await _controller.DeleteConfirmed(id);
 
         // Assert
         Assert.AreEqual(nameof(RecenzijaController.Index), rezultat.ActionName);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(RecenzijaControllerPodaci.AdminBrisanje), typeof(RecenzijaControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Mock"), TestCategory("Autorizacija")]
+    [TestProperty("Autor", "Fatih Crljenkovic")]
+    public async Task DeleteConfirmed_AdministratorBriseBiloKojuRecenziju_BriseRecenziju(int id, string adminId, string uloga)
+    {
+        // Arrange
+        RecenzijaControllerPodaci.Prijavi(_controller, _userManager, adminId, uloga);
+
+        // Act
+        await _controller.DeleteConfirmed(id);
+
+        // Assert
         _recenzijaServis.Verify(s => s.Delete(It.Is<Recenzija>(r => r.RecenzijaId == id)), Times.Once);
     }
 }
