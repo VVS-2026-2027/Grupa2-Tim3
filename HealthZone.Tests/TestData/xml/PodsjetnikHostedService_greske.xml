@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Greške koje baci ITerminService dok pozadinski servis provjerava statuse termina. -->
+<greske>
+  <greska><poruka>Baza nije dostupna.</poruka></greska>
+  <greska><poruka>Isteklo vrijeme za upit.</poruka></greska>
+</greske>
