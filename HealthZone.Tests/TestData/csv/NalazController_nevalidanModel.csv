@@ -1,0 +1,3 @@
+kljucGreske;porukaGreske;terminId;pacijentId;korisnikId;uloga
+Dijagnoza;Polje Dijagnoza je obavezno.;1;p-1;d-1;Doktor
+Opis;Polje Opis je obavezno.;3;p-3;a-1;Administrator

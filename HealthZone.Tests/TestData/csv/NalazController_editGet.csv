@@ -1,0 +1,5 @@
+id;korisnikId;uloga;ocekivaniRezultat
+;a-1;Administrator;NotFoundResult
+99;a-1;Administrator;NotFoundResult
+1;d-1;Doktor;ViewResult
+4;a-1;Administrator;ViewResult

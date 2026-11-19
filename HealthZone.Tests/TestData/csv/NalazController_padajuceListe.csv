@@ -1,0 +1,4 @@
+korisnikId;uloga;ocekivaniTermini;ocekivaniPacijenti
+a-1;Administrator;1,2,3;p-1,p-2,p-3,p-4
+d-1;Doktor;1,2;p-1,p-2
+d-2;Doktor;3;p-3

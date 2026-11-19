@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Koje nalaze korisnik vidi i kojim redom (od najnovijeg termina; nalaz bez termina ide na kraj). -->
+<scenariji>
+  <scenarij>
+    <korisnikId>a-1</korisnikId>
+    <uloga>Administrator</uloga>
+    <ocekivaniRedoslijed>1,3,2,5,4</ocekivaniRedoslijed>
+  </scenarij>
+  <scenarij>
+    <korisnikId>d-1</korisnikId>
+    <uloga>Doktor</uloga>
+    <ocekivaniRedoslijed>1,3,2,5,4</ocekivaniRedoslijed>
+  </scenarij>
+  <scenarij>
+    <korisnikId>s-1</korisnikId>
+    <uloga>MedicinskaSestra</uloga>
+    <ocekivaniRedoslijed>1,3,2,5,4</ocekivaniRedoslijed>
+  </scenarij>
+  <scenarij>
+    <korisnikId>p-1</korisnikId>
+    <uloga>Pacijent</uloga>
+    <ocekivaniRedoslijed>1,5</ocekivaniRedoslijed>
+  </scenarij>
+  <scenarij>
+    <korisnikId>p-3</korisnikId>
+    <uloga>Pacijent</uloga>
+    <ocekivaniRedoslijed>3,4</ocekivaniRedoslijed>
+  </scenarij>
+  <scenarij>
+    <korisnikId>p-9</korisnikId>
+    <uloga>Pacijent</uloga>
+    <ocekivaniRedoslijed></ocekivaniRedoslijed>
+  </scenarij>
+</scenariji>

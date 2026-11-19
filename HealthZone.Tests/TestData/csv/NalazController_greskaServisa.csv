@@ -1,0 +1,4 @@
+terminId;pacijentId;korisnikId;uloga;poruka
+99;p-1;d-1;Doktor;Termin nije pronađen.
+1;p-1;d-1;Doktor;Za ovaj termin već postoji nalaz.
+4;p-4;a-1;Administrator;Nalaz se može dodati samo za aktivan (obavljen) termin.

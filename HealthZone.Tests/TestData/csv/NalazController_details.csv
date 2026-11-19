@@ -1,0 +1,7 @@
+id;korisnikId;uloga;ocekivaniRezultat
+;d-1;Doktor;NotFoundResult
+99;d-1;Doktor;NotFoundResult
+1;d-1;Doktor;ViewResult
+1;p-1;Pacijent;ViewResult
+2;p-1;Pacijent;ForbidResult
+3;a-1;Administrator;ViewResult
