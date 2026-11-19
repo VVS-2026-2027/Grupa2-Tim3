@@ -9,15 +9,18 @@ namespace HealthZone.Services
         private readonly INalazRepository _nalazRepository;
         private readonly ITerminRepository _terminRepository;
         private readonly IConfiguration _config;
+        private readonly ISmtpSender _smtpSender;
 
         public NalazService(
             INalazRepository nalazRepository,
             ITerminRepository terminRepository,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            ISmtpSender smtpSender)
         {
             _nalazRepository = nalazRepository;
             _terminRepository = terminRepository;
             _config = configuration;
+            _smtpSender = smtpSender;
         }
 
         public async Task<Nalaz?> GetByIdAsync(int id)
@@ -178,13 +181,7 @@ namespace HealthZone.Services
             };
             poruka.To.Add(new System.Net.Mail.MailAddress(emailAdresa, imePacijenta));
 
-            using var klijent = new System.Net.Mail.SmtpClient(smtpHost, smtpPort)
-            {
-                EnableSsl = true,
-                Credentials = new System.Net.NetworkCredential(smtpUser, smtpPass)
-            };
-
-            await klijent.SendMailAsync(poruka);
+            await _smtpSender.PosaljiAsync(poruka, smtpHost, smtpPort, smtpUser, smtpPass, true);
         }
     }
 }

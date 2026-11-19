@@ -1,5 +1,4 @@
 ﻿using Microsoft.Extensions.Options;
-using System.Net;
 using System.Net.Mail;
 using static System.Runtime.InteropServices.JavaScript.JSType;
 
@@ -19,10 +18,12 @@ namespace HealthZone.Services
     public class EmailService : IEmailService
     {
         private readonly EmailSettings _settings;
+        private readonly ISmtpSender _smtpSender;
 
-        public EmailService(IOptions<EmailSettings> options)
+        public EmailService(IOptions<EmailSettings> options, ISmtpSender smtpSender)
         {
             _settings = options.Value;
+            _smtpSender = smtpSender;
         }
 
         // ─── POTVRDA TERMINA ──────────────────────────────────────────────────
@@ -141,12 +142,6 @@ namespace HealthZone.Services
 
         private async Task PošaljiAsync(string to, string subject, string htmlBody)
         {
-            using var client = new SmtpClient(_settings.Host, _settings.Port)
-            {
-                EnableSsl = _settings.EnableSsl,
-                Credentials = new NetworkCredential(_settings.Username, _settings.Password)
-            };
-
             using var message = new MailMessage
             {
                 From = new MailAddress(_settings.FromEmail, _settings.FromName),
@@ -156,7 +151,8 @@ namespace HealthZone.Services
             };
             message.To.Add(to);
 
-            await client.SendMailAsync(message);
+            await _smtpSender.PosaljiAsync(message, _settings.Host, _settings.Port,
+                _settings.Username, _settings.Password, _settings.EnableSsl);
         }
 
         // ─── HTML TEMPLATE ────────────────────────────────────────────────────

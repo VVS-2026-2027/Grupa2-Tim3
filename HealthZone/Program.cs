@@ -62,6 +62,7 @@ builder.Services.AddScoped<IZahtjevZaOpremuService, ZahtjevZaOpremuService>();
 builder.Services.Configure<EmailSettings>(
     builder.Configuration.GetSection("EmailSettings"));
 
+builder.Services.AddScoped<ISmtpSender, SmtpSender>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddHostedService<PodsjetnikHostedService>();
 
