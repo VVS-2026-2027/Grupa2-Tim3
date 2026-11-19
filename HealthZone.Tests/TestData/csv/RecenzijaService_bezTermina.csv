@@ -1,0 +1,4 @@
+pacijentId;doktorId;validnaOcjena;ocekivanaPoruka
+pacijent-2;doktor-3;5;Možete recenzirati samo doktore kod kojih ste imali obavljeni pregled.
+pacijent-3;doktor-2;5;Možete recenzirati samo doktore kod kojih ste imali obavljeni pregled.
+pacijent-5;doktor-1;5;Možete recenzirati samo doktore kod kojih ste imali obavljeni pregled.

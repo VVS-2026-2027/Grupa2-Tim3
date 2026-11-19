@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Postojeće recenzije u "bazi". Prosjek ukupno: doktor-1 = 4.5, doktor-3 = 3.7, doktor-2 = 2.3, doktor-4 nema recenzija = 0 -->
+<recenzije>
+  <recenzija><id>1</id><pacijentId>pacijent-1</pacijentId><doktorId>doktor-1</doktorId><ljubaznost>5</ljubaznost><profesionalnost>5</profesionalnost><usluga>5</usluga></recenzija>
+  <recenzija><id>2</id><pacijentId>pacijent-2</pacijentId><doktorId>doktor-1</doktorId><ljubaznost>4</ljubaznost><profesionalnost>4</profesionalnost><usluga>4</usluga></recenzija>
+  <recenzija><id>3</id><pacijentId>pacijent-1</pacijentId><doktorId>doktor-2</doktorId><ljubaznost>2</ljubaznost><profesionalnost>3</profesionalnost><usluga>2</usluga></recenzija>
+  <recenzija><id>4</id><pacijentId>pacijent-3</pacijentId><doktorId>doktor-3</doktorId><ljubaznost>4</ljubaznost><profesionalnost>4</profesionalnost><usluga>3</usluga></recenzija>
+</recenzije>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Doktor ima specijalizaciju, pacijent ima prioritet, sestra nema ni jedno ni drugo -->
+<korisnici>
+  <korisnik><id>doktor-1</id><specijalizacija>Kardiologija</specijalizacija><prioritet></prioritet></korisnik>
+  <korisnik><id>doktor-2</id><specijalizacija>Pedijatrija</specijalizacija><prioritet></prioritet></korisnik>
+  <korisnik><id>doktor-3</id><specijalizacija>Dermatologija</specijalizacija><prioritet></prioritet></korisnik>
+  <korisnik><id>doktor-4</id><specijalizacija>OpcaMedicina</specijalizacija><prioritet></prioritet></korisnik>
+  <korisnik><id>pacijent-1</id><specijalizacija></specijalizacija><prioritet>Visok</prioritet></korisnik>
+  <korisnik><id>pacijent-2</id><specijalizacija></specijalizacija><prioritet>Srednji</prioritet></korisnik>
+  <korisnik><id>pacijent-3</id><specijalizacija></specijalizacija><prioritet>Nizak</prioritet></korisnik>
+  <korisnik><id>sestra-1</id><specijalizacija></specijalizacija><prioritet></prioritet></korisnik>
+</korisnici>

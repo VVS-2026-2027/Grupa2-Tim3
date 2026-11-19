@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<scenariji>
+  <scenarij><top>1</top><ocekivaniRedoslijed>doktor-1</ocekivaniRedoslijed></scenarij>
+  <scenarij><top>2</top><ocekivaniRedoslijed>doktor-1,doktor-3</ocekivaniRedoslijed></scenarij>
+  <scenarij><top>5</top><ocekivaniRedoslijed>doktor-1,doktor-3,doktor-2,doktor-4</ocekivaniRedoslijed></scenarij>
+  <scenarij><top>0</top><ocekivaniRedoslijed></ocekivaniRedoslijed></scenarij>
+</scenariji>
