@@ -9,124 +9,294 @@ namespace HealthZone.Tests;
 // ─── Izvori podataka i pomoćne metode za NotifikacijaRepositoryTests ────
 public static class NotifikacijaRepositoryPodaci
 {
-    public static IEnumerable<object[]> ZapisiCsv() =>
-        CsvLoader.Ucitaj("Repozitorij_podaci.csv")
-                 .Select(r => new object[] { int.Parse(r[0]), r[1], int.Parse(r[2]) });
+    // ── pomoćne metode ──
 
-    public static IEnumerable<object[]> ZapisiXml() =>
-        XmlLoader.Ucitaj("Repozitorij_zapisi.xml", "scenarij")
-                 .Select(x => new object[]
-                 {
-                     (string)x.Element("doktorId")!,
-                     (string)x.Element("korisnikId")!,
-                     (int)x.Element("ocekivanoDodano")!
-                 });
+    public static ApplicationDbContext NovaBaza(string imeBaze) => new(
+        new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(imeBaze).Options);
+
+    public static Notifikacija NapraviNotifikaciju(XElement x) => new()
+    {
+        NotifikacijaId = (int)x.Attribute("id")!,
+        TerminID = (int)x.Attribute("terminId")!,
+        Poruka = (string)x.Attribute("poruka")!,
+        status = Enum.Parse<Status>((string)x.Attribute("status")!),
+        DatumSlanja = DateTime.Now.AddHours((double)x.Attribute("pomakSati")!)
+    };
+
+    public static Notifikacija NapraviNotifikaciju(int id, int terminId, string poruka) =>
+        new() { NotifikacijaId = id, TerminID = terminId, Poruka = poruka, DatumSlanja = DateTime.Now };
+
+    // Upisuje notifikacije iz XML "baze" u InMemory bazu, u posebnoj instanci konteksta.
+    public static void NapuniBazu(string imeBaze, XElement baza)
+    {
+        using var kontekst = NovaBaza(imeBaze);
+        kontekst.Notifikacija.AddRange(baza.Elements("notifikacija").Select(NapraviNotifikaciju));
+        kontekst.SaveChanges();
+    }
+
+    // ── izvori podataka ──
+
+    public static IEnumerable<object[]> SveNotifikacije() =>
+        XmlLoader.Ucitaj("NotifikacijaRepository_baza.xml", "baza").Select(b => new object[]
+        {
+            b.Elements("notifikacija").Select(n => (int)n.Attribute("id")!).ToArray()
+        });
+
+    private static IEnumerable<string[]> Postojece() => CsvLoader.Ucitaj("NotifikacijaRepository_postojece.csv");
+
+    public static IEnumerable<object[]> PostojecePoruke() => Postojece().Select(r => new object[] { int.Parse(r[0]), r[1] });
+
+    public static IEnumerable<object[]> PostojeciTermini() => Postojece().Select(r => new object[] { int.Parse(r[0]), int.Parse(r[2]) });
+
+    public static IEnumerable<object[]> NepostojeceNotifikacije() =>
+        CsvLoader.Ucitaj("NotifikacijaRepository_nepostojece.csv").Select(r => new object[] { int.Parse(r[0]) });
+
+    public static IEnumerable<object[]> NoveNotifikacije() =>
+        CsvLoader.Ucitaj("NotifikacijaRepository_nove.csv").Select(r => new object[] { int.Parse(r[0]), int.Parse(r[1]), r[2] });
+
+    public static IEnumerable<object[]> Izmjene() =>
+        CsvLoader.Ucitaj("NotifikacijaRepository_izmjena.csv").Select(r => new object[] { int.Parse(r[0]), int.Parse(r[1]), r[2] });
+
+    public static IEnumerable<object[]> Brisanje() =>
+        CsvLoader.Ucitaj("NotifikacijaRepository_brisanje.csv").Select(r => new object[] { int.Parse(r[0]), int.Parse(r[1]), r[2] });
+
+    public static IEnumerable<object[]> Snimanje() =>
+        CsvLoader.Ucitaj("NotifikacijaRepository_snimanje.csv")
+                 .Select(r => new object[] { int.Parse(r[0]), int.Parse(r[1]), r[2], int.Parse(r[3]) });
 }
 
 // ─── Testovi ────────────────────────────────────────────────────────────
+// Repozitorij radi nad EF Core InMemory bazom (Fake): svaki test dobija svoju bazu, napunjenu iz XML-a.
+// Stanje nakon snimanja se provjerava u novoj instanci konteksta.
 [TestClass]
 public class NotifikacijaRepositoryTests
 {
-    private static List<XElement> _podaciXml = null!;
+    private static XElement _baza = null!;   // samo za čitanje
 
+    private string _imeBaze = null!;
     private ApplicationDbContext _context = null!;
-    private NotifikacijaRepository _repo = null!;
+    private NotifikacijaRepository _repozitorij = null!;
 
     [ClassInitialize]
     public static void ClassInit(TestContext context)
     {
-        _podaciXml = XmlLoader.Ucitaj("Repozitorij_zapisi.xml", "scenarij").ToList();
+        _baza = XmlLoader.Ucitaj("NotifikacijaRepository_baza.xml", "baza").Single();
     }
 
     [TestInitialize]
     public void Setup()
     {
-        var opcije = new DbContextOptionsBuilder<ApplicationDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
-
-        _context = new ApplicationDbContext(opcije);
-        _repo = new NotifikacijaRepository(_context);
+        _imeBaze = Guid.NewGuid().ToString();
+        NotifikacijaRepositoryPodaci.NapuniBazu(_imeBaze, _baza);
+        _context = NotifikacijaRepositoryPodaci.NovaBaza(_imeBaze);
+        _repozitorij = new NotifikacijaRepository(_context);
     }
 
     [TestCleanup]
-    public void Cleanup()
-    {
-        _context.Dispose();
-    }
+    public void Cleanup() => _context.Dispose();
+
+    // ─── ČITANJE ──────────────────────────────────────────────────────────
 
     [TestMethod]
-    [DynamicData(nameof(NotifikacijaRepositoryPodaci.ZapisiCsv), typeof(NotifikacijaRepositoryPodaci), DynamicDataSourceType.Method)]
-    [TestCategory("Fake"), TestCategory("DataDriven")]
-    [TestProperty("Autor", "Ramiz Plancic")]
-    public async Task AddAsync_I_GetByIdAsync_SpremaI_DohvataNotifikaciju(int id, string naziv, int ocekivano)
+    [DynamicData(nameof(NotifikacijaRepositoryPodaci.PostojecePoruke), typeof(NotifikacijaRepositoryPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Fake")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    [Priority(1)]
+    public async Task GetByIdAsync_NotifikacijaPostoji_VracaNotifikacijuSaPorukom(int id, string ocekivanaPoruka)
     {
-        // Arrange
-        var notif = new Notifikacija
-        {
-            NotifikacijaId = id,
-            Poruka = naziv,
-            DatumSlanja = DateTime.Now,
-            status = Status.NaCekanju,
-            TerminID = 1
-        };
+        // Arrange (baza je napunjena u Setup)
 
         // Act
-        await _repo.AddAsync(notif);
-        await _repo.SaveChangesAsync();
-        var dohvaceno = await _repo.GetByIdAsync(id);
+        var rezultat = await _repozitorij.GetByIdAsync(id);
 
         // Assert
-        Assert.IsNotNull(dohvaceno);
-        Assert.AreEqual(id, dohvaceno.NotifikacijaId);
+        Assert.IsNotNull(rezultat);
+        Assert.AreEqual(ocekivanaPoruka, rezultat.Poruka);
     }
 
     [TestMethod]
-    [DynamicData(nameof(NotifikacijaRepositoryPodaci.ZapisiCsv), typeof(NotifikacijaRepositoryPodaci), DynamicDataSourceType.Method)]
-    [TestCategory("Fake"), TestCategory("DataDriven")]
-    [TestProperty("Autor", "Ramiz Plancic")]
-    public async Task GetAllAsync_PostojeNotifikacije_VracaSve(int id, string naziv, int ocekivano)
+    [DynamicData(nameof(NotifikacijaRepositoryPodaci.PostojeciTermini), typeof(NotifikacijaRepositoryPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Fake")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task GetByIdAsync_NotifikacijaPostoji_VracaTerminNotifikacije(int id, int ocekivaniTerminId)
     {
-        // Arrange
-        var n1 = new Notifikacija { NotifikacijaId = id, Poruka = "N1", TerminID = 1 };
-        var n2 = new Notifikacija { NotifikacijaId = id + 10, Poruka = "N2", TerminID = 2 };
-        await _repo.AddAsync(n1);
-        await _repo.AddAsync(n2);
-        await _repo.SaveChangesAsync();
+        // Arrange (baza je napunjena u Setup)
 
         // Act
-        var sve = await _repo.GetAllAsync();
+        var rezultat = await _repozitorij.GetByIdAsync(id);
 
         // Assert
-        Assert.AreEqual(2, sve.Count());
+        Assert.AreEqual(ocekivaniTerminId, rezultat?.TerminID);
     }
 
     [TestMethod]
-    [DynamicData(nameof(NotifikacijaRepositoryPodaci.ZapisiXml), typeof(NotifikacijaRepositoryPodaci), DynamicDataSourceType.Method)]
-    [TestCategory("Fake"), TestCategory("DataDriven")]
-    [TestProperty("Autor", "Ramiz Plancic")]
-    public async Task Update_I_Delete_AzuriraIObriseNotifikaciju(string doktorId, string korisnikId, int ocekivano)
+    [DynamicData(nameof(NotifikacijaRepositoryPodaci.NepostojeceNotifikacije), typeof(NotifikacijaRepositoryPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Fake")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task GetByIdAsync_NotifikacijaNePostoji_VracaNull(int id)
+    {
+        // Arrange (baza je napunjena u Setup)
+
+        // Act
+        var rezultat = await _repozitorij.GetByIdAsync(id);
+
+        // Assert
+        Assert.IsNull(rezultat);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(NotifikacijaRepositoryPodaci.SveNotifikacije), typeof(NotifikacijaRepositoryPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Fake")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    [Priority(1)]
+    public async Task GetAllAsync_BazaImaNotifikacije_VracaSveNotifikacije(int[] ocekivaniIds)
+    {
+        // Arrange (baza je napunjena u Setup)
+
+        // Act
+        var rezultat = await _repozitorij.GetAllAsync();
+
+        // Assert
+        CollectionAssert.AreEquivalent(ocekivaniIds, rezultat.Select(n => n.NotifikacijaId).ToArray());
+    }
+
+    // ─── DODAVANJE ────────────────────────────────────────────────────────
+
+    [TestMethod]
+    [DynamicData(nameof(NotifikacijaRepositoryPodaci.NoveNotifikacije), typeof(NotifikacijaRepositoryPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Fake")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task AddAsync_NovaNotifikacija_OznacavaJeZaDodavanje(int id, int terminId, string poruka)
     {
         // Arrange
-        var notif = new Notifikacija { NotifikacijaId = 20, Poruka = "Prije izmjene", TerminID = 1 };
-        await _repo.AddAsync(notif);
-        await _repo.SaveChangesAsync();
+        var notifikacija = NotifikacijaRepositoryPodaci.NapraviNotifikaciju(id, terminId, poruka);
 
-        // Act - Update
-        notif.Poruka = "Nakon izmjene";
-        _repo.Update(notif);
-        await _repo.SaveChangesAsync();
-        var azurirano = await _repo.GetByIdAsync(20);
+        // Act
+        await _repozitorij.AddAsync(notifikacija);
 
-        // Assert - Update
-        Assert.AreEqual("Nakon izmjene", azurirano?.Poruka);
+        // Assert
+        Assert.AreEqual(EntityState.Added, _context.Entry(notifikacija).State);
+    }
 
-        // Act - Delete
-        _repo.Delete(azurirano!);
-        await _repo.SaveChangesAsync();
-        var obrisano = await _repo.GetByIdAsync(20);
+    [TestMethod]
+    [DynamicData(nameof(NotifikacijaRepositoryPodaci.NoveNotifikacije), typeof(NotifikacijaRepositoryPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Fake")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task AddAsync_BezSnimanja_NotifikacijaNijeUBazi(int id, int terminId, string poruka)
+    {
+        // Arrange
+        var notifikacija = NotifikacijaRepositoryPodaci.NapraviNotifikaciju(id, terminId, poruka);
 
-        // Assert - Delete
-        Assert.IsNull(obrisano);
+        // Act
+        await _repozitorij.AddAsync(notifikacija);
+
+        // Assert
+        using var provjera = NotifikacijaRepositoryPodaci.NovaBaza(_imeBaze);
+        Assert.IsNull(await provjera.Notifikacija.FindAsync(id));
+    }
+
+    // ─── IZMJENA I BRISANJE ───────────────────────────────────────────────
+
+    [TestMethod]
+    [DynamicData(nameof(NotifikacijaRepositoryPodaci.Izmjene), typeof(NotifikacijaRepositoryPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Fake")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public void Update_PostojecaNotifikacija_OznacavaJeKaoIzmijenjenu(int id, int terminId, string novaPoruka)
+    {
+        // Arrange
+        var notifikacija = NotifikacijaRepositoryPodaci.NapraviNotifikaciju(id, terminId, novaPoruka);
+
+        // Act
+        _repozitorij.Update(notifikacija);
+
+        // Assert
+        Assert.AreEqual(EntityState.Modified, _context.Entry(notifikacija).State);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(NotifikacijaRepositoryPodaci.Brisanje), typeof(NotifikacijaRepositoryPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Fake")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public void Delete_PostojecaNotifikacija_OznacavaJeZaBrisanje(int id, int terminId, string poruka)
+    {
+        // Arrange
+        var notifikacija = NotifikacijaRepositoryPodaci.NapraviNotifikaciju(id, terminId, poruka);
+
+        // Act
+        _repozitorij.Delete(notifikacija);
+
+        // Assert
+        Assert.AreEqual(EntityState.Deleted, _context.Entry(notifikacija).State);
+    }
+
+    // ─── SNIMANJE ─────────────────────────────────────────────────────────
+
+    [TestMethod]
+    [DynamicData(nameof(NotifikacijaRepositoryPodaci.Snimanje), typeof(NotifikacijaRepositoryPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Fake")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task SaveChangesAsync_NakonDodavanja_VracaBrojPromjena(int id, int terminId, string poruka, int ocekivaniBroj)
+    {
+        // Arrange
+        await _repozitorij.AddAsync(NotifikacijaRepositoryPodaci.NapraviNotifikaciju(id, terminId, poruka));
+
+        // Act
+        var rezultat = await _repozitorij.SaveChangesAsync();
+
+        // Assert
+        Assert.AreEqual(ocekivaniBroj, rezultat);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(NotifikacijaRepositoryPodaci.NoveNotifikacije), typeof(NotifikacijaRepositoryPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Fake")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    [Priority(1)]
+    public async Task SaveChangesAsync_NakonDodavanja_NotifikacijaJeUBazi(int id, int terminId, string poruka)
+    {
+        // Arrange
+        await _repozitorij.AddAsync(NotifikacijaRepositoryPodaci.NapraviNotifikaciju(id, terminId, poruka));
+
+        // Act
+        await _repozitorij.SaveChangesAsync();
+
+        // Assert
+        using var provjera = NotifikacijaRepositoryPodaci.NovaBaza(_imeBaze);
+        Assert.IsNotNull(await provjera.Notifikacija.FindAsync(id));
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(NotifikacijaRepositoryPodaci.Izmjene), typeof(NotifikacijaRepositoryPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Fake")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    [Priority(1)]
+    public async Task SaveChangesAsync_NakonIzmjene_BazaImaNovuPoruku(int id, int terminId, string novaPoruka)
+    {
+        // Arrange
+        _repozitorij.Update(NotifikacijaRepositoryPodaci.NapraviNotifikaciju(id, terminId, novaPoruka));
+
+        // Act
+        await _repozitorij.SaveChangesAsync();
+
+        // Assert
+        using var provjera = NotifikacijaRepositoryPodaci.NovaBaza(_imeBaze);
+        Assert.AreEqual(novaPoruka, (await provjera.Notifikacija.FindAsync(id))!.Poruka);
+    }
+
+    [TestMethod]
+    [DynamicData(nameof(NotifikacijaRepositoryPodaci.Brisanje), typeof(NotifikacijaRepositoryPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Fake")]
+    [TestProperty("Autor", "Ahmed Spahic")]
+    public async Task SaveChangesAsync_NakonBrisanja_NotifikacijaNijeUBazi(int id, int terminId, string poruka)
+    {
+        // Arrange
+        _repozitorij.Delete(NotifikacijaRepositoryPodaci.NapraviNotifikaciju(id, terminId, poruka));
+
+        // Act
+        await _repozitorij.SaveChangesAsync();
+
+        // Assert
+        using var provjera = NotifikacijaRepositoryPodaci.NovaBaza(_imeBaze);
+        Assert.IsNull(await provjera.Notifikacija.FindAsync(id));
     }
 }

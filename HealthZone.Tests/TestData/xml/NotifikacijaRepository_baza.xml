@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Notifikacije koje se prije svakog testa upisuju u InMemory bazu. Datum slanja je pomak u satima od sada. -->
+<baza>
+  <notifikacija id="1" terminId="10" poruka="Termin je zakazan." status="NaCekanju" pomakSati="-5" />
+  <notifikacija id="2" terminId="10" poruka="Termin je potvrđen." status="Potvrdjen" pomakSati="-1" />
+  <notifikacija id="3" terminId="11" poruka="Termin je otkazan." status="Otkazan" pomakSati="-2" />
+</baza>
