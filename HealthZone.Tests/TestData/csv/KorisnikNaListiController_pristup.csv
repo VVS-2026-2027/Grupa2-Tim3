@@ -1,0 +1,7 @@
+id;korisnikId;uloga;dozvoljeno
+1;d-1;Doktor;true
+3;d-2;Doktor;true
+3;a-1;Administrator;true
+4;a-1;Administrator;true
+3;d-1;Doktor;false
+4;d-1;Doktor;false

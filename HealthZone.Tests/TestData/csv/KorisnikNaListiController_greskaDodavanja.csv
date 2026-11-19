@@ -1,0 +1,3 @@
+korisnikId;uloga;listaId;pacijentId;poruka
+d-1;Doktor;1;p-1;Pacijent je već na ovoj listi čekanja.
+a-1;Administrator;2;p-1;Pacijent je već na ovoj listi čekanja.

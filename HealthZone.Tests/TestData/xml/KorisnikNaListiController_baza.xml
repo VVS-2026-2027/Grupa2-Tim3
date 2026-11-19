@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- "Baza" koju vraćaju zamjenski servisi.
+     Stavka bez atributa doktorId nema učitanu listu. Lista bez doktorId nema učitanog doktora.
+     Korisnik sa specijalizacijom je doktor, bez nje je pacijent. -->
+<baza>
+  <stavka id="1" listaId="1" doktorId="d-1" korisnikId="p-1" />
+  <stavka id="2" listaId="1" doktorId="d-1" korisnikId="p-2" />
+  <stavka id="3" listaId="2" doktorId="d-2" korisnikId="p-1" />
+  <stavka id="4" listaId="3" korisnikId="p-3" />
+
+  <lista id="1" doktorId="d-1" ime="Amra" prezime="Hodžić" />
+  <lista id="2" doktorId="d-2" ime="Kenan" prezime="Begić" />
+  <lista id="3" />
+
+  <korisnik id="d-1" ime="Amra" prezime="Hodžić" specijalizacija="Kardiologija" />
+  <korisnik id="d-2" ime="Kenan" prezime="Begić" specijalizacija="Pedijatrija" />
+  <korisnik id="p-1" ime="Haris" prezime="Kovač" />
+  <korisnik id="p-2" ime="Selma" prezime="Kurić" />
+  <korisnik id="p-3" ime="Mirza" prezime="Delić" />
+</baza>

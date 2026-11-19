@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Administrator vidi sve stavke, bira bilo koju listu i bira samo korisnike bez specijalizacije (pacijente). -->
+<scenariji>
+  <scenarij>
+    <korisnikId>a-1</korisnikId>
+    <uloga>Administrator</uloga>
+    <ocekivaneStavke>1,2,3,4</ocekivaneStavke>
+    <ocekivaniBrojListi>3</ocekivaniBrojListi>
+    <ocekivaniPacijenti>p-1,p-2,p-3</ocekivaniPacijenti>
+  </scenarij>
+</scenariji>

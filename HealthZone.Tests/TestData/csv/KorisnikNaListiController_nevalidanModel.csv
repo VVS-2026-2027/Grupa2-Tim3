@@ -1,0 +1,3 @@
+korisnikId;uloga;listaId;polje;greska
+a-1;Administrator;1;KorisnikID;Polje Korisnik je obavezno.
+d-1;Doktor;1;Datum;Neispravan datum.
