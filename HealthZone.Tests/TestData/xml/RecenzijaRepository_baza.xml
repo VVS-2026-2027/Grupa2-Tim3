@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Doktori, pacijenti i recenzije koji se prije svakog testa upisuju u InMemory bazu. -->
+<baza>
+  <korisnik id="doktor-1" ime="Amra" prezime="Hodžić" />
+  <korisnik id="doktor-2" ime="Kenan" prezime="Begić" />
+  <korisnik id="pacijent-1" ime="Lejla" prezime="Mujić" />
+  <korisnik id="pacijent-2" ime="Mirza" prezime="Delić" />
+  <recenzija id="1" pacijent="pacijent-1" doktor="doktor-1" ljubaznost="5" profesionalnost="5" usluga="4" komentar="Odličan pristup" />
+  <recenzija id="2" pacijent="pacijent-2" doktor="doktor-1" ljubaznost="4" profesionalnost="4" usluga="4" komentar="" />
+  <recenzija id="3" pacijent="pacijent-1" doktor="doktor-2" ljubaznost="3" profesionalnost="4" usluga="3" komentar="Dugo čekanje" />
+</baza>
