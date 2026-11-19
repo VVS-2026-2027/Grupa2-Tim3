@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Zapisi koji se prije svakog testa upisuju u InMemory bazu: korisnici, liste čekanja i stavke na listama.
+     Datum prijave stavke je pomak u danima od danas. -->
+<baza>
+  <korisnik id="d-1" ime="Amra" prezime="Hodžić" email="amra.hodzic@mail.ba" />
+  <korisnik id="d-2" ime="Kenan" prezime="Begić" email="kenan.begic@mail.ba" />
+  <korisnik id="p-1" ime="Haris" prezime="Kovač" email="haris.kovac@mail.ba" />
+  <korisnik id="p-2" ime="Selma" prezime="Kurić" email="selma.kuric@mail.ba" />
+  <lista id="1" doktorId="d-1" />
+  <lista id="2" doktorId="d-2" />
+  <stavka id="1" listaId="1" korisnikId="p-1" pomakDana="-3" />
+  <stavka id="2" listaId="1" korisnikId="p-2" pomakDana="-1" />
+  <stavka id="3" listaId="2" korisnikId="p-1" pomakDana="-2" />
+</baza>
