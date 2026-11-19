@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Element koji nedostaje znači da polje nije uneseno (null). Više očekivanih grešaka se razdvaja znakom | -->
+<scenariji>
+  <scenarij><naziv>EKG</naziv><opis>Snimanje rada srca</opis><cijena>40.00</cijena><ocekivaneGreske></ocekivaneGreske></scenarij>
+  <scenarij><naziv>EKG</naziv><opis>Snimanje rada srca</opis><cijena>0.01</cijena><ocekivaneGreske></ocekivaneGreske></scenarij>
+  <scenarij><opis>Snimanje rada srca</opis><cijena>40.00</cijena><ocekivaneGreske>Polje Naziv je obavezno.</ocekivaneGreske></scenarij>
+  <scenarij><naziv>EKG</naziv><cijena>40.00</cijena><ocekivaneGreske>Polje Opis je obavezno.</ocekivaneGreske></scenarij>
+  <scenarij><naziv>EKG</naziv><opis>Snimanje rada srca</opis><cijena>0</cijena><ocekivaneGreske>Cijena mora biti veća od 0.</ocekivaneGreske></scenarij>
+  <scenarij><naziv>EKG</naziv><opis>Snimanje rada srca</opis><cijena>-20.50</cijena><ocekivaneGreske>Cijena mora biti veća od 0.</ocekivaneGreske></scenarij>
+</scenariji>
