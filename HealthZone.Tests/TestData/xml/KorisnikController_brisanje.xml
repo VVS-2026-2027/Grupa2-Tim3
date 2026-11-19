@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Stanje InMemory baze prije brisanja korisnika i očekivani broj zapisa poslije. -->
+<scenariji>
+  <scenarij naziv="brisanje doktora">
+    <korisnikId>d-1</korisnikId>
+    <termini>
+      <termin id="1" doktor="d-1" pacijent="p-1" />
+      <termin id="2" doktor="d-2" pacijent="p-2" />
+      <termin id="3" doktor="d-2" pacijent="p-3" />
+    </termini>
+    <nalazi>
+      <nalaz id="1" termin="1" pacijent="p-1" opis="Kontrolni pregled" dijagnoza="Hipertenzija" terapija="Mirovanje" />
+      <nalaz id="2" termin="2" pacijent="p-2" opis="Prvi pregled" dijagnoza="Prehlada" terapija="Čaj i odmor" />
+    </nalazi>
+    <notifikacije>
+      <notifikacija id="1" termin="1" poruka="Podsjetnik za termin" />
+      <notifikacija id="2" termin="2" poruka="Termin potvrđen" />
+    </notifikacije>
+    <listeCekanja>
+      <lista id="1" doktor="d-1" />
+      <lista id="2" doktor="d-2" />
+    </listeCekanja>
+    <naListi>
+      <zapis id="1" lista="1" korisnik="p-5" />
+      <zapis id="2" lista="2" korisnik="p-6" />
+    </naListi>
+    <recenzije>
+      <recenzija id="1" doktor="d-1" pacijent="p-1" />
+      <recenzija id="2" doktor="d-2" pacijent="p-2" />
+    </recenzije>
+    <ocekivano termini="2" nalazi="1" notifikacije="1" listeCekanja="1" naListi="1" recenzije="1" />
+  </scenarij>
+  <scenarij naziv="brisanje pacijenta">
+    <korisnikId>p-1</korisnikId>
+    <termini>
+      <termin id="1" doktor="d-1" pacijent="p-1" />
+      <termin id="2" doktor="d-2" pacijent="p-2" />
+      <termin id="3" doktor="d-1" pacijent="p-1" />
+    </termini>
+    <nalazi>
+      <nalaz id="1" termin="1" pacijent="p-1" opis="Kontrolni pregled" dijagnoza="Dijabetes" terapija="Dijeta" />
+      <nalaz id="2" termin="2" pacijent="p-2" opis="Prvi pregled" dijagnoza="Alergija" terapija="Antihistaminik" />
+    </nalazi>
+    <notifikacije>
+      <notifikacija id="1" termin="1" poruka="Podsjetnik za termin" />
+      <notifikacija id="2" termin="3" poruka="Termin otkazan" />
+      <notifikacija id="3" termin="2" poruka="Termin potvrđen" />
+    </notifikacije>
+    <listeCekanja>
+      <lista id="1" doktor="d-1" />
+    </listeCekanja>
+    <naListi>
+      <zapis id="1" lista="1" korisnik="p-1" />
+      <zapis id="2" lista="1" korisnik="p-2" />
+    </naListi>
+    <recenzije>
+      <recenzija id="1" doktor="d-1" pacijent="p-1" />
+      <recenzija id="2" doktor="d-1" pacijent="p-2" />
+    </recenzije>
+    <ocekivano termini="1" nalazi="1" notifikacije="1" listeCekanja="1" naListi="1" recenzije="1" />
+  </scenarij>
+</scenariji>

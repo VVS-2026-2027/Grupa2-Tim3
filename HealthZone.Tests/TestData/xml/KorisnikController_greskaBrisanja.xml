@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<scenariji>
+  <scenarij>
+    <id>k-1801</id>
+    <uloga>Pacijent</uloga>
+    <greske>
+      <greska>Korisnik je zaključan.</greska>
+    </greske>
+    <ocekivanaPoruka>Korisnik je zaključan.</ocekivanaPoruka>
+  </scenarij>
+  <scenarij>
+    <id>k-1802</id>
+    <uloga>Doktor</uloga>
+    <greske>
+      <greska>Greška baze.</greska>
+      <greska>Brisanje nije dozvoljeno.</greska>
+    </greske>
+    <ocekivanaPoruka>Greška baze.; Brisanje nije dozvoljeno.</ocekivanaPoruka>
+  </scenarij>
+</scenariji>

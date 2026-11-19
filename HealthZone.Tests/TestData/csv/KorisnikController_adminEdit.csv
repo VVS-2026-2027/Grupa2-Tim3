@@ -1,0 +1,4 @@
+id;ulogaPrijavljenog;ime;prezime;email;telefon;specijalizacija;prioritet;brojKartona;uloga;novaLozinka;token;securityStamp;ocekivaniPrefiksKartona;mijenjaUlogu;resetujeLozinku;osvjezavaStamp
+k-801;Administrator;Amar;Hadžić;amar.dr@mail.ba;061222333;Kardiologija;;;Doktor;;;STAMP-801;;true;false;false
+k-802;Administrator;Lana;Pašić;lana.p@mail.ba;062444555;;Visok;;Pacijent;NovaLozinka1!;TOKEN-802;;HZ-;true;true;true
+k-803;Administrator;Mirza;Delić;mirza.d@mail.ba;;;Srednji;HZ-20240101-ZZ999;;;;STAMP-803;HZ-20240101-ZZ999;false;false;false

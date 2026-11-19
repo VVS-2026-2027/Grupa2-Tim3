@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<scenariji>
+  <scenarij>
+    <id>k-2101</id>
+    <ulogaPrijavljenog>Administrator</ulogaPrijavljenog>
+    <uloga>Doktor</uloga>
+    <securityStamp>STAMP-2101</securityStamp>
+    <novaLozinka>abc</novaLozinka>
+    <token>TOKEN-2101</token>
+    <greske>
+      <greska>Lozinka mora imati najmanje 8 znakova.</greska>
+    </greske>
+    <ocekivanaPoruka>Lozinka mora imati najmanje 8 znakova.</ocekivanaPoruka>
+    <trenutnaUloga>Doktor</trenutnaUloga>
+  </scenarij>
+  <scenarij>
+    <id>k-2102</id>
+    <ulogaPrijavljenog>Pacijent</ulogaPrijavljenog>
+    <uloga>Pacijent</uloga>
+    <securityStamp>STAMP-2102</securityStamp>
+    <novaLozinka>sifra</novaLozinka>
+    <token>TOKEN-2102</token>
+    <greske>
+      <greska>Lozinka mora sadržavati broj.</greska>
+      <greska>Lozinka mora sadržavati veliko slovo.</greska>
+    </greske>
+    <ocekivanaPoruka>Lozinka mora sadržavati broj.; Lozinka mora sadržavati veliko slovo.</ocekivanaPoruka>
+    <trenutnaUloga>Pacijent</trenutnaUloga>
+  </scenarij>
+</scenariji>

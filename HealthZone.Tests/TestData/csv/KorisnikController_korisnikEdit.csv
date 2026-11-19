@@ -1,0 +1,3 @@
+id;ulogaPrijavljenog;securityStamp;staroIme;staroPrezime;ime;prezime;email;telefon;novaLozinka;potvrda;token;resetujeLozinku
+k-901;Pacijent;STAMP-901;Selma;Kurić;Promijenjeno;Ime;selma.nova@mail.ba;063111000;NovaSifra1!;NovaSifra1!;TOKEN-901;true
+k-902;Doktor;STAMP-902;Tarik;Omerović;Drugo;Prezime;tarik.novi@mail.ba;064222111;;;;false

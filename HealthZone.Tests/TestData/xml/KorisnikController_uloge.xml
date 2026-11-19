@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Uloge koje se upisuju u InMemory bazu prije svakog testa. -->
+<podaci>
+  <uloge>
+    <uloga>Pacijent</uloga>
+    <uloga>Doktor</uloga>
+    <uloga>MedicinskaSestra</uloga>
+    <uloga>Administrator</uloga>
+  </uloge>
+  <sortirano>Administrator,Doktor,MedicinskaSestra,Pacijent</sortirano>
+</podaci>

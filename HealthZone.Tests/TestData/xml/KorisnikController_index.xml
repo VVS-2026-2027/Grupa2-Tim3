@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<scenariji>
+  <scenarij>
+    <korisnik id="k-1" uloga="Doktor" ocekivano="Doktor" />
+    <korisnik id="k-2" uloga="Pacijent" ocekivano="Pacijent" />
+    <korisnik id="k-3" uloga="" ocekivano="—" />
+  </scenarij>
+  <scenarij>
+    <korisnik id="k-4" uloga="Administrator" ocekivano="Administrator" />
+  </scenarij>
+</scenariji>

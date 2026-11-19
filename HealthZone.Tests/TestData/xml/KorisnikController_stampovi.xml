@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<scenariji>
+  <scenarij>
+    <korisnik id="k-1" stamp="STAMP-1" />
+    <korisnik id="k-2" stamp="" />
+    <korisnik id="k-3" stamp="" />
+    <ocekivaniBroj>2</ocekivaniBroj>
+    <ocekivanaPoruka>Gotovo — popavljeno 2 korisnika.</ocekivanaPoruka>
+  </scenarij>
+  <scenarij>
+    <korisnik id="k-4" stamp="STAMP-4" />
+    <ocekivaniBroj>0</ocekivaniBroj>
+    <ocekivanaPoruka>Gotovo — popavljeno 0 korisnika.</ocekivanaPoruka>
+  </scenarij>
+</scenariji>

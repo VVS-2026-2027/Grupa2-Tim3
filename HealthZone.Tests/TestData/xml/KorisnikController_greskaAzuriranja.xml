@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<scenariji>
+  <scenarij>
+    <id>k-2001</id>
+    <ulogaPrijavljenog>Administrator</ulogaPrijavljenog>
+    <uloga>Doktor</uloga>
+    <securityStamp>STAMP-2001</securityStamp>
+    <greske>
+      <greska>Email je već zauzet.</greska>
+    </greske>
+    <ocekivanaPoruka>Email je već zauzet.</ocekivanaPoruka>
+    <svjeziPostoji>true</svjeziPostoji>
+    <trenutnaUloga>Pacijent</trenutnaUloga>
+    <ocekivanaUlogaUViewBagu>Pacijent</ocekivanaUlogaUViewBagu>
+  </scenarij>
+  <scenarij>
+    <id>k-2002</id>
+    <ulogaPrijavljenog>Administrator</ulogaPrijavljenog>
+    <uloga>MedicinskaSestra</uloga>
+    <securityStamp>STAMP-2002</securityStamp>
+    <greske>
+      <greska>Email nije validan.</greska>
+      <greska>Korisničko ime je zauzeto.</greska>
+    </greske>
+    <ocekivanaPoruka>Email nije validan.; Korisničko ime je zauzeto.</ocekivanaPoruka>
+    <svjeziPostoji>false</svjeziPostoji>
+    <trenutnaUloga>Pacijent</trenutnaUloga>
+    <ocekivanaUlogaUViewBagu>MedicinskaSestra</ocekivanaUlogaUViewBagu>
+  </scenarij>
+  <scenarij>
+    <id>k-2003</id>
+    <ulogaPrijavljenog>Pacijent</ulogaPrijavljenog>
+    <uloga>Pacijent</uloga>
+    <securityStamp>STAMP-2003</securityStamp>
+    <greske>
+      <greska>Email je već zauzet.</greska>
+    </greske>
+    <ocekivanaPoruka>Email je već zauzet.</ocekivanaPoruka>
+    <svjeziPostoji>true</svjeziPostoji>
+    <trenutnaUloga>Pacijent</trenutnaUloga>
+    <ocekivanaUlogaUViewBagu>Pacijent</ocekivanaUlogaUViewBagu>
+  </scenarij>
+</scenariji>
