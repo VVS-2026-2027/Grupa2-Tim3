@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<scenariji>
+  <scenarij>
+    <doktor><id>doktor-1</id><ukupno>4.5</ukupno></doktor>
+    <doktor><id>doktor-2</id><ukupno>3.7</ukupno></doktor>
+    <doktor><id>doktor-3</id><ukupno>0</ukupno></doktor>
+    <brojSestara>2</brojSestara>
+  </scenarij>
+  <scenarij>
+    <brojSestara>1</brojSestara>
+  </scenarij>
+</scenariji>
