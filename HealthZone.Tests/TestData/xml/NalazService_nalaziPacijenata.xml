@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Nalazi s pacijentom, terminom (id) i datumom termina (danas + pomakDana). Nalaz 4 nema termin. -->
+<podaci>
+  <nalaz id="1" pacijent="p-1" termin="11" pomakDana="-10" />
+  <nalaz id="2" pacijent="p-1" termin="12" pomakDana="-1" />
+  <nalaz id="3" pacijent="p-2" termin="13" pomakDana="-5" />
+  <nalaz id="4" pacijent="p-1" />
+  <scenarij pacijent="p-1" ocekivaniRedoslijed="2,1,4" />
+  <scenarij pacijent="p-2" ocekivaniRedoslijed="3" />
+  <scenarij pacijent="p-9" ocekivaniRedoslijed="" />
+</podaci>

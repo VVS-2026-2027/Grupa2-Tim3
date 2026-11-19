@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- EmailSettings ključevi u konfiguraciji. Element koji nedostaje = ključ nije podešen. -->
+<scenariji>
+  <scenarij naziv="potpuna">
+    <SmtpHost>smtp.mailtrap.io</SmtpHost>
+    <SmtpPort>2525</SmtpPort>
+    <SmtpUser>healthzone@mailtrap.io</SmtpUser>
+    <SmtpPass>tajna-lozinka-123</SmtpPass>
+    <ocekivaniHost>smtp.mailtrap.io</ocekivaniHost>
+    <ocekivaniPort>2525</ocekivaniPort>
+    <ocekivaniSsl>true</ocekivaniSsl>
+  </scenarij>
+  <scenarij naziv="podrazumijevana">
+    <SmtpUser>healthzone@gmail.com</SmtpUser>
+    <SmtpPass>app-password-456</SmtpPass>
+    <ocekivaniHost>smtp.gmail.com</ocekivaniHost>
+    <ocekivaniPort>587</ocekivaniPort>
+    <ocekivaniSsl>true</ocekivaniSsl>
+  </scenarij>
+  <scenarij naziv="bezKorisnika">
+    <SmtpHost>smtp.mailtrap.io</SmtpHost>
+    <SmtpPort>2525</SmtpPort>
+    <SmtpPass>tajna-lozinka-123</SmtpPass>
+  </scenarij>
+  <scenarij naziv="bezLozinke">
+    <SmtpHost>smtp.mailtrap.io</SmtpHost>
+    <SmtpPort>2525</SmtpPort>
+    <SmtpUser>healthzone@mailtrap.io</SmtpUser>
+  </scenarij>
+</scenariji>

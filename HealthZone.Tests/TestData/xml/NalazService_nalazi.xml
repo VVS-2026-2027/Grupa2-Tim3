@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Nalazi za print i slanje na email. Nalaz 3 nema pacijenta ni termin. -->
+<nalazi formatDatuma="dd.MM.yyyy">
+  <nalaz id="1" opis="Kontrolni pregled srca" dijagnoza="Hipertenzija" terapija="Beta blokatori" oznakaTerapije="Terapija:">
+    <pacijent ime="Amra" prezime="Hodžić" brojKartona="HZ-20261101-AB12C" email="amra.hodzic@mail.ba" />
+    <termin pomakDana="-1" vrijeme="09:30" />
+  </nalaz>
+  <nalaz id="2" opis="Pregled djeteta" dijagnoza="Upala uha" terapija="" oznakaTerapije="Terapija:">
+    <pacijent ime="Kenan" prezime="Begić" brojKartona="HZ-20250505-XY9Z1" email="" />
+    <termin pomakDana="-3" vrijeme="10:15" />
+  </nalaz>
+  <nalaz id="3" opis="Hitni pregled" dijagnoza="Povreda šake" terapija="Imobilizacija" oznakaTerapije="Terapija:" />
+</nalazi>

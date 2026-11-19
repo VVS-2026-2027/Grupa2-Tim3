@@ -1,0 +1,3 @@
+id;konfiguracija;ocekivanaPoruka
+1;bezKorisnika;SMTP korisnik nije konfigurisan (EmailSettings:SmtpUser).
+1;bezLozinke;SMTP lozinka nije konfigurirana (EmailSettings:SmtpPass).
