@@ -3,19 +3,9 @@ using HealthZone.Services;
 
 namespace HealthZone.Tests;
 
-[TestClass]
-public class OgranicenjeZakazivanjaServiceTests
+// ─── Izvori podataka i pomoćne metode za OgranicenjeZakazivanjaServiceTests (TDD F2-B) ───
+public static class OgranicenjeZakazivanjaServicePodaci
 {
-    private OgranicenjeZakazivanjaService _servis = null!;
-    private DateTime _sada;
-
-    [TestInitialize]
-    public void Setup()
-    {
-        _servis = new OgranicenjeZakazivanjaService();
-        _sada = DateTime.Now;
-    }
-
     // CSV: očekivana poruka kad lista otkazivanja nije proslijeđena (null).
     public static IEnumerable<object[]> NullLista() =>
         CsvLoader.Ucitaj("OgranicenjeZakazivanjaService_nullLista.csv")
@@ -44,8 +34,42 @@ public class OgranicenjeZakazivanjaServiceTests
                      bool.Parse((string)x.Element("mozeZakazati")!)
                  });
 
+    // Datumi otkazivanja kao pomaci u danima od zadanog "sada".
+    public static List<DateTime> DatumiOtkazivanja(double[] pomaciDana, DateTime sada) =>
+        pomaciDana.Select(p => sada.AddDays(p)).ToList();
+}
+
+// ─── Testovi ────────────────────────────────────────────────────────────
+[TestClass]
+public class OgranicenjeZakazivanjaServiceTests
+{
+    // Isto "sada" za sve testove u klasi, postavlja se jednom (samo za čitanje).
+    private static DateTime _referentnoVrijeme;
+
+    private OgranicenjeZakazivanjaService _servis = null!;
+    private DateTime _sada;
+
+    [ClassInitialize]
+    public static void ClassInit(TestContext context)
+    {
+        _referentnoVrijeme = DateTime.Now;
+    }
+
+    [TestInitialize]
+    public void Setup()
+    {
+        _servis = new OgranicenjeZakazivanjaService();
+        _sada = _referentnoVrijeme;
+    }
+
+    [TestCleanup]
+    public void Cleanup()
+    {
+        _servis = null!;
+    }
+
     [TestMethod]
-    [DynamicData(nameof(NullLista), DynamicDataSourceType.Method)]
+    [DynamicData(nameof(OgranicenjeZakazivanjaServicePodaci.NullLista), typeof(OgranicenjeZakazivanjaServicePodaci), DynamicDataSourceType.Method)]
     [TestCategory("TDD"), TestCategory("DataDriven"), TestCategory("Izuzetak")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
     [Priority(1)]
@@ -59,14 +83,14 @@ public class OgranicenjeZakazivanjaServiceTests
     }
 
     [TestMethod]
-    [DynamicData(nameof(BrojOtkazivanja), DynamicDataSourceType.Method)]
+    [DynamicData(nameof(OgranicenjeZakazivanjaServicePodaci.BrojOtkazivanja), typeof(OgranicenjeZakazivanjaServicePodaci), DynamicDataSourceType.Method)]
     [TestCategory("TDD"), TestCategory("DataDriven")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
     [Timeout(2000)]
     public void MozeZakazatiNoviTermin_RazlicitBrojOtkazivanja_TriIViseZabranjujeZakazivanje(double[] pomaciDana, bool mozeZakazati)
     {
         // Arrange
-        var datumiOtkazivanja = pomaciDana.Select(p => _sada.AddDays(p)).ToList();
+        var datumiOtkazivanja = OgranicenjeZakazivanjaServicePodaci.DatumiOtkazivanja(pomaciDana, _sada);
 
         // Act
         var rezultat = _servis.MozeZakazatiNoviTermin(datumiOtkazivanja, _sada);
@@ -76,13 +100,13 @@ public class OgranicenjeZakazivanjaServiceTests
     }
 
     [TestMethod]
-    [DynamicData(nameof(PeriodOd30Dana), DynamicDataSourceType.Method)]
+    [DynamicData(nameof(OgranicenjeZakazivanjaServicePodaci.PeriodOd30Dana), typeof(OgranicenjeZakazivanjaServicePodaci), DynamicDataSourceType.Method)]
     [TestCategory("TDD"), TestCategory("DataDriven")]
     [TestProperty("Autor", "Fatih Crljenkovic")]
     public void MozeZakazatiNoviTermin_OtkazivanjaUnutarIVanPerioda_BrojeSamoZadnjih30Dana(double[] pomaciDana, bool mozeZakazati)
     {
         // Arrange
-        var datumiOtkazivanja = pomaciDana.Select(p => _sada.AddDays(p)).ToList();
+        var datumiOtkazivanja = OgranicenjeZakazivanjaServicePodaci.DatumiOtkazivanja(pomaciDana, _sada);
 
         // Act
         var rezultat = _servis.MozeZakazatiNoviTermin(datumiOtkazivanja, _sada);
