@@ -73,6 +73,24 @@ public static class NalazServicePodaci
 
     public static string Ocekivano(string naziv, string element) => (string)KonfiguracijaXml(naziv).Element(element)!;
 
+    // Očekivane SMTP postavke za zadanu konfiguraciju.
+    public static string OcekivaniHost(string naziv) => Ocekivano(naziv, "ocekivaniHost");
+    public static int OcekivaniPort(string naziv) => int.Parse(Ocekivano(naziv, "ocekivaniPort"));
+    public static string OcekivaniKorisnik(string naziv) => Ocekivano(naziv, "SmtpUser");
+    public static string OcekivanaLozinka(string naziv) => Ocekivano(naziv, "SmtpPass");
+    public static bool OcekivaniSsl(string naziv) => bool.Parse(Ocekivano(naziv, "ocekivaniSsl"));
+
+    // Ime i prezime pacijenta onako kako se ispisuje na printu nalaza.
+    public static string ImeIPrezime(Korisnik pacijent) => $"{pacijent.Ime} {pacijent.Prezime}";
+
+    // Novi nalaz za zadani termin; opis, dijagnoza i terapija su iz prvog nalaza u XML-u.
+    public static Nalaz NoviNalazZaTermin(int terminId)
+    {
+        var nalaz = NapraviNalaz((int)NalaziXml().First().Attribute("id")!);
+        nalaz.TerminID = terminId;
+        return nalaz;
+    }
+
     // ── nalazi po pacijentu i terminu (NalazService_nalaziPacijenata.xml) ──
 
     public static List<Nalaz> NalaziPacijenata() =>
@@ -296,8 +314,7 @@ public class NalazServiceTests
     public async Task AddAsync_TerminNePostoji_BacaException(int terminId, string ocekivanaPoruka)
     {
         // Arrange
-        var nalaz = NalazServicePodaci.NapraviNalaz(1);
-        nalaz.TerminID = terminId;
+        var nalaz = NalazServicePodaci.NoviNalazZaTermin(terminId);
         _terminRepo.Setup(r => r.GetByIdAsync(terminId)).ReturnsAsync((Termin?)null);
 
         // Act
@@ -315,8 +332,7 @@ public class NalazServiceTests
     public async Task AddAsync_TerminNijeAktivan_BacaException(int terminId, string status, string ocekivanaPoruka)
     {
         // Arrange
-        var nalaz = NalazServicePodaci.NapraviNalaz(1);
-        nalaz.TerminID = terminId;
+        var nalaz = NalazServicePodaci.NoviNalazZaTermin(terminId);
         _terminRepo.Setup(r => r.GetByIdAsync(terminId))
                    .ReturnsAsync(new Termin { TerminId = terminId, Status = Enum.Parse<Status>(status) });
 
@@ -335,8 +351,7 @@ public class NalazServiceTests
         string ocekivanaPoruka)
     {
         // Arrange
-        var nalaz = NalazServicePodaci.NapraviNalaz(1);
-        nalaz.TerminID = terminId;
+        var nalaz = NalazServicePodaci.NoviNalazZaTermin(terminId);
         _terminRepo.Setup(r => r.GetByIdAsync(terminId)).ReturnsAsync(
             new Termin { TerminId = terminId, PacijentID = pacijentId, Status = Enum.Parse<Status>(status) });
         _nalazRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<Nalaz> { new() { TerminID = terminId } });
@@ -356,8 +371,7 @@ public class NalazServiceTests
         string ocekivanaPoruka)
     {
         // Arrange
-        var nalaz = NalazServicePodaci.NapraviNalaz(1);
-        nalaz.TerminID = terminId;
+        var nalaz = NalazServicePodaci.NoviNalazZaTermin(terminId);
         _terminRepo.Setup(r => r.GetByIdAsync(terminId)).ReturnsAsync(
             new Termin { TerminId = terminId, PacijentID = pacijentId, Status = Enum.Parse<Status>(status) });
         _nalazRepo.Setup(r => r.GetAllAsync()).ReturnsAsync(new List<Nalaz> { new() { TerminID = terminId } });
@@ -516,7 +530,7 @@ public class NalazServiceTests
         var html = await _servis.GenerirajHtmlZaPrintAsync(id);
 
         // Assert
-        StringAssert.Contains(html, nalaz.Pacijent!.Ime + " " + nalaz.Pacijent.Prezime);
+        StringAssert.Contains(html, NalazServicePodaci.ImeIPrezime(nalaz.Pacijent!));
     }
 
     [TestMethod]
@@ -786,11 +800,11 @@ public class NalazServiceTests
         _nalazRepo.Setup(r => r.GetByIdAsync(id)).ReturnsAsync(NalazServicePodaci.NapraviNalaz(id));
         var servis = new NalazService(_nalazRepo.Object, _terminRepo.Object,
             NalazServicePodaci.Konfiguracija(konfiguracija), _smtp.Object);
-        var host = NalazServicePodaci.Ocekivano(konfiguracija, "ocekivaniHost");
-        var port = int.Parse(NalazServicePodaci.Ocekivano(konfiguracija, "ocekivaniPort"));
-        var korisnik = NalazServicePodaci.Ocekivano(konfiguracija, "SmtpUser");
-        var lozinka = NalazServicePodaci.Ocekivano(konfiguracija, "SmtpPass");
-        var ssl = bool.Parse(NalazServicePodaci.Ocekivano(konfiguracija, "ocekivaniSsl"));
+        var host = NalazServicePodaci.OcekivaniHost(konfiguracija);
+        var port = NalazServicePodaci.OcekivaniPort(konfiguracija);
+        var korisnik = NalazServicePodaci.OcekivaniKorisnik(konfiguracija);
+        var lozinka = NalazServicePodaci.OcekivanaLozinka(konfiguracija);
+        var ssl = NalazServicePodaci.OcekivaniSsl(konfiguracija);
 
         // Act
         await servis.PosaljiNaEmailAsync(id);
