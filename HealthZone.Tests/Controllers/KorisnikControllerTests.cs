@@ -96,7 +96,41 @@ public static class KorisnikControllerPodaci
     }
 
     public static string PrvaGreska(Controller kontroler)
-        => kontroler.ModelState[string.Empty]!.Errors[0].ErrorMessage;
+        => kontroler.ModelState[string.Empty]!.Errors.First().ErrorMessage;
+
+    // ── pristup vrijednostima koje kontroler stavlja u ViewData/ViewBag ──
+
+    public static Dictionary<string, string> UlogeMap(Controller kontroler)
+        => (Dictionary<string, string>)kontroler.ViewData["UlogeMap"]!;
+
+    public static System.Collections.ICollection SveUloge(Controller kontroler)
+        => (System.Collections.ICollection)kontroler.ViewData["SveUloge"]!;
+
+    public static object? Uloga(Controller kontroler) => kontroler.ViewData["Uloga"];
+
+    public static object? TrenutnaUloga(Controller kontroler) => kontroler.ViewData["TrenutnaUloga"];
+
+    public static object? GreskaBrisanja(Controller kontroler) => kontroler.ViewData["GreskaBrisanja"];
+
+    public static string[] Prioriteti(Controller kontroler)
+        => ((SelectList)kontroler.ViewData["Prioriteti"]!).Select(i => i.Text).ToArray();
+
+    public static string[] Specijalizacije(Controller kontroler)
+        => ((SelectList)kontroler.ViewData["Specijalizacije"]!).Select(i => i.Text).ToArray();
+
+    public static string[] Uloge(Controller kontroler)
+        => ((SelectList)kontroler.ViewData["Uloge"]!).Select(i => i.Text).ToArray();
+
+    public static object? IdRute(RedirectToActionResult rezultat) => rezultat.RouteValues!["id"];
+
+    // ── očekivani broj preostalih zapisa nakon brisanja (iz <ocekivano> u XML scenariju) ──
+
+    public static int OcekivanoTermina(XElement ocekivano) => (int)ocekivano.Attribute("termini")!;
+    public static int OcekivanoNalaza(XElement ocekivano) => (int)ocekivano.Attribute("nalazi")!;
+    public static int OcekivanoNotifikacija(XElement ocekivano) => (int)ocekivano.Attribute("notifikacije")!;
+    public static int OcekivanoListaCekanja(XElement ocekivano) => (int)ocekivano.Attribute("listeCekanja")!;
+    public static int OcekivanoNaListi(XElement ocekivano) => (int)ocekivano.Attribute("naListi")!;
+    public static int OcekivanoRecenzija(XElement ocekivano) => (int)ocekivano.Attribute("recenzije")!;
 
     // Svi UserManager pozivi koje uspješan Edit (POST) koristi.
     public static void PodesiUspjesanEdit(Mock<UserManager<Korisnik>> userManager, Korisnik postojeci, string token)
@@ -327,6 +361,19 @@ public static class KorisnikControllerPodaci
             (string)k.Attribute("ocekivano")!
         });
 
+    // Create (GET): očekivane vrijednosti padajućih lista.
+    private static XElement FormaKreiranja() => XmlLoader.Ucitaj("KorisnikController_formaKreiranja.xml", "forma").Single();
+
+    public static IEnumerable<object[]> OcekivaniPrioriteti() =>
+        new[] { new object[] { ((string)FormaKreiranja().Element("prioriteti")!).Split(',') } };
+
+    public static IEnumerable<object[]> OcekivaneSpecijalizacije() =>
+        new[] { new object[] { ((string)FormaKreiranja().Element("specijalizacije")!).Split(',') } };
+
+    // Uloge u padajućoj listi su one koje su upisane u bazu (KorisnikController_uloge.xml).
+    public static IEnumerable<object[]> UlogeIzBaze() =>
+        new[] { new object[] { XmlLoader.Ucitaj("KorisnikController_uloge.xml", "uloga").Select(x => (string)x).ToArray() } };
+
     public static IEnumerable<object[]> SortiraneUloge() =>
         XmlLoader.Ucitaj("KorisnikController_uloge.xml", "sortirano")
                  .Select(x => new object[] { ((string)x).Split(',') });
@@ -462,8 +509,7 @@ public class KorisnikControllerTests
         await _controller.Index();
 
         // Assert
-        var mapa = (Dictionary<string, string>)_controller.ViewData["UlogeMap"]!;
-        Assert.AreEqual(ocekivano, mapa[id]);
+        Assert.AreEqual(ocekivano, KorisnikControllerPodaci.UlogeMap(_controller)[id]);
     }
 
     [TestMethod]
@@ -479,7 +525,7 @@ public class KorisnikControllerTests
         await _controller.Index();
 
         // Assert
-        CollectionAssert.AreEqual(sortirano, (System.Collections.ICollection)_controller.ViewData["SveUloge"]!);
+        CollectionAssert.AreEqual(sortirano, KorisnikControllerPodaci.SveUloge(_controller));
     }
 
     // ─── DETAILS ──────────────────────────────────────────────────────────
@@ -534,46 +580,48 @@ public class KorisnikControllerTests
         await _controller.Details(id);
 
         // Assert
-        Assert.AreEqual(uloga, _controller.ViewData["Uloga"]);
+        Assert.AreEqual(uloga, KorisnikControllerPodaci.Uloga(_controller));
     }
 
     // ─── CREATE ───────────────────────────────────────────────────────────
 
     [TestMethod]
-    [TestCategory("Stub"), TestCategory("Fake")]
+    [DynamicData(nameof(KorisnikControllerPodaci.OcekivaniPrioriteti), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Fake")]
     [TestProperty("Autor", "Ahmed Spahic")]
-    public async Task Create_Get_NudiSvePrioritete()
+    public async Task Create_Get_OtvaranjeForme_NudiSvePrioritete(string[] ocekivaniPrioriteti)
     {
         // Act
         await _controller.Create();
 
         // Assert
-        Assert.AreEqual(Enum.GetValues<Prioritet>().Length, ((SelectList)_controller.ViewData["Prioriteti"]!).Count());
+        CollectionAssert.AreEqual(ocekivaniPrioriteti, KorisnikControllerPodaci.Prioriteti(_controller));
     }
 
     [TestMethod]
-    [TestCategory("Stub"), TestCategory("Fake")]
+    [DynamicData(nameof(KorisnikControllerPodaci.OcekivaneSpecijalizacije), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Fake")]
     [TestProperty("Autor", "Ahmed Spahic")]
-    public async Task Create_Get_NudiSveSpecijalizacije()
+    public async Task Create_Get_OtvaranjeForme_NudiSveSpecijalizacije(string[] ocekivaneSpecijalizacije)
     {
         // Act
         await _controller.Create();
 
         // Assert
-        Assert.AreEqual(Enum.GetValues<Specijalizacija>().Length,
-            ((SelectList)_controller.ViewData["Specijalizacije"]!).Count());
+        CollectionAssert.AreEqual(ocekivaneSpecijalizacije, KorisnikControllerPodaci.Specijalizacije(_controller));
     }
 
     [TestMethod]
-    [TestCategory("Stub"), TestCategory("Fake")]
+    [DynamicData(nameof(KorisnikControllerPodaci.UlogeIzBaze), typeof(KorisnikControllerPodaci), DynamicDataSourceType.Method)]
+    [TestCategory("DataDriven"), TestCategory("Stub"), TestCategory("Fake")]
     [TestProperty("Autor", "Ahmed Spahic")]
-    public async Task Create_Get_NudiSveUlogeIzBaze()
+    public async Task Create_Get_OtvaranjeForme_NudiSveUlogeIzBaze(string[] ocekivaneUloge)
     {
         // Act
         await _controller.Create();
 
         // Assert
-        Assert.AreEqual(_uloge.Count, ((SelectList)_controller.ViewData["Uloge"]!).Count());
+        CollectionAssert.AreEquivalent(ocekivaneUloge, KorisnikControllerPodaci.Uloge(_controller));
     }
 
     [TestMethod]
@@ -761,7 +809,7 @@ public class KorisnikControllerTests
         await _controller.Edit(korisnikId);
 
         // Assert
-        Assert.AreEqual(ulogaKorisnika, _controller.ViewData["TrenutnaUloga"]);
+        Assert.AreEqual(ulogaKorisnika, KorisnikControllerPodaci.TrenutnaUloga(_controller));
     }
 
     // ─── EDIT (POST): ulaz i autorizacija ─────────────────────────────────
@@ -836,7 +884,7 @@ public class KorisnikControllerTests
         // Assert
         Assert.IsNotNull(rezultat);
         Assert.AreEqual(nameof(KorisnikController.Details), rezultat.ActionName);
-        Assert.AreEqual(red.Id, rezultat.RouteValues!["id"]);
+        Assert.AreEqual(red.Id, KorisnikControllerPodaci.IdRute(rezultat));
     }
 
     [TestMethod]
@@ -1321,7 +1369,7 @@ public class KorisnikControllerTests
         await _controller.Edit(red.Id, new Korisnik { Id = red.Id }, red.Uloga, null, null);
 
         // Assert
-        Assert.AreEqual(red.OcekivanaUlogaUViewBagu, _controller.ViewData["TrenutnaUloga"]);
+        Assert.AreEqual(red.OcekivanaUlogaUViewBagu, KorisnikControllerPodaci.TrenutnaUloga(_controller));
     }
 
     [TestMethod]
@@ -1343,7 +1391,7 @@ public class KorisnikControllerTests
         await _controller.Edit(red.Id, new Korisnik { Id = red.Id }, red.Uloga, null, null);
 
         // Assert
-        Assert.AreEqual(red.OcekivanaUlogaUViewBagu, _controller.ViewData["TrenutnaUloga"]);
+        Assert.AreEqual(red.OcekivanaUlogaUViewBagu, KorisnikControllerPodaci.TrenutnaUloga(_controller));
     }
 
     [TestMethod]
@@ -1424,7 +1472,7 @@ public class KorisnikControllerTests
         await _controller.Delete(id);
 
         // Assert
-        Assert.AreEqual(uloga, _controller.ViewData["Uloga"]);
+        Assert.AreEqual(uloga, KorisnikControllerPodaci.Uloga(_controller));
     }
 
     // ─── DELETE (POST) ────────────────────────────────────────────────────
@@ -1478,7 +1526,7 @@ public class KorisnikControllerTests
 
         // Assert
         using var baza = KorisnikControllerPodaci.NovaBaza(_imeBaze);
-        Assert.AreEqual((int)ocekivano.Attribute("termini")!, baza.Termin.Count());
+        Assert.AreEqual(KorisnikControllerPodaci.OcekivanoTermina(ocekivano), baza.Termin.Count());
     }
 
     [TestMethod]
@@ -1496,7 +1544,7 @@ public class KorisnikControllerTests
 
         // Assert
         using var baza = KorisnikControllerPodaci.NovaBaza(_imeBaze);
-        Assert.AreEqual((int)ocekivano.Attribute("nalazi")!, baza.Nalaz.Count());
+        Assert.AreEqual(KorisnikControllerPodaci.OcekivanoNalaza(ocekivano), baza.Nalaz.Count());
     }
 
     [TestMethod]
@@ -1514,7 +1562,7 @@ public class KorisnikControllerTests
 
         // Assert
         using var baza = KorisnikControllerPodaci.NovaBaza(_imeBaze);
-        Assert.AreEqual((int)ocekivano.Attribute("notifikacije")!, baza.Notifikacija.Count());
+        Assert.AreEqual(KorisnikControllerPodaci.OcekivanoNotifikacija(ocekivano), baza.Notifikacija.Count());
     }
 
     [TestMethod]
@@ -1532,7 +1580,7 @@ public class KorisnikControllerTests
 
         // Assert
         using var baza = KorisnikControllerPodaci.NovaBaza(_imeBaze);
-        Assert.AreEqual((int)ocekivano.Attribute("listeCekanja")!, baza.ListaCekanja.Count());
+        Assert.AreEqual(KorisnikControllerPodaci.OcekivanoListaCekanja(ocekivano), baza.ListaCekanja.Count());
     }
 
     [TestMethod]
@@ -1550,7 +1598,7 @@ public class KorisnikControllerTests
 
         // Assert
         using var baza = KorisnikControllerPodaci.NovaBaza(_imeBaze);
-        Assert.AreEqual((int)ocekivano.Attribute("naListi")!, baza.KorisnikNaListi.Count());
+        Assert.AreEqual(KorisnikControllerPodaci.OcekivanoNaListi(ocekivano), baza.KorisnikNaListi.Count());
     }
 
     [TestMethod]
@@ -1568,7 +1616,7 @@ public class KorisnikControllerTests
 
         // Assert
         using var baza = KorisnikControllerPodaci.NovaBaza(_imeBaze);
-        Assert.AreEqual((int)ocekivano.Attribute("recenzije")!, baza.Recenzija.Count());
+        Assert.AreEqual(KorisnikControllerPodaci.OcekivanoRecenzija(ocekivano), baza.Recenzija.Count());
     }
 
     [TestMethod]
@@ -1605,7 +1653,7 @@ public class KorisnikControllerTests
         await _controller.DeleteConfirmed(id);
 
         // Assert
-        Assert.AreEqual(ocekivanaPoruka, _controller.ViewData["GreskaBrisanja"]);
+        Assert.AreEqual(ocekivanaPoruka, KorisnikControllerPodaci.GreskaBrisanja(_controller));
     }
 
     [TestMethod]
@@ -1625,7 +1673,7 @@ public class KorisnikControllerTests
         await _controller.DeleteConfirmed(id);
 
         // Assert
-        Assert.AreEqual(uloga, _controller.ViewData["Uloga"]);
+        Assert.AreEqual(uloga, KorisnikControllerPodaci.Uloga(_controller));
     }
 
     [TestMethod]
@@ -1646,7 +1694,7 @@ public class KorisnikControllerTests
         await _controller.DeleteConfirmed(id);
 
         // Assert
-        Assert.AreEqual(unutrasnjaPoruka, _controller.ViewData["GreskaBrisanja"]);
+        Assert.AreEqual(unutrasnjaPoruka, KorisnikControllerPodaci.GreskaBrisanja(_controller));
     }
 
     // ─── POPRAVI STAMPOVE ─────────────────────────────────────────────────

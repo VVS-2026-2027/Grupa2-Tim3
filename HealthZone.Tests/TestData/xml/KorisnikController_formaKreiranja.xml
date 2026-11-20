@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Create (GET): vrijednosti koje forma za novog korisnika nudi u padajućim listama. -->
+<podaci>
+  <forma>
+    <prioriteti>Nizak,Srednji,Visok</prioriteti>
+    <specijalizacije>OpcaMedicina,Kardiologija,Pedijatrija,Dermatologija</specijalizacije>
+  </forma>
+</podaci>
