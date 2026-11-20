@@ -16,6 +16,15 @@ public static class NalazControllerPodaci
 {
     // ── pomoćne metode ──
 
+    // Pristup vrijednostima koje kontroler vraća (ViewData, ModelState, JSON).
+    public static Korisnik Pacijent(Controller kontroler) => (Korisnik)kontroler.ViewData["Pacijent"]!;
+
+    public static string GreskaPolja(Controller kontroler, string polje)
+        => kontroler.ModelState[polje]!.Errors.First().ErrorMessage;
+
+    public static object? PacijentIzJsona(JsonResult rezultat)
+        => rezultat.Value!.GetType().GetProperty("pacijentId")!.GetValue(rezultat.Value);
+
     public static T? EnumIliNull<T>(string? s) where T : struct, Enum
         => string.IsNullOrEmpty(s) ? null : Enum.Parse<T>(s);
 
@@ -510,7 +519,7 @@ public class NalazControllerTests
         await _controller.Create(nalaz);
 
         // Assert
-        Assert.AreEqual(poruka, _controller.ModelState[nameof(Nalaz.TerminID)]!.Errors[0].ErrorMessage);
+        Assert.AreEqual(poruka, NalazControllerPodaci.GreskaPolja(_controller, nameof(Nalaz.TerminID)));
     }
 
     // ─── EDIT (POST) ──────────────────────────────────────────────────────
@@ -787,7 +796,7 @@ public class NalazControllerTests
         await _controller.MedicinskiKarton(id);
 
         // Assert
-        Assert.AreEqual(id, ((Korisnik)_controller.ViewData["Pacijent"]!).Id);
+        Assert.AreEqual(id, NalazControllerPodaci.Pacijent(_controller).Id);
     }
 
     // ─── AJAX: PACIJENT ZA TERMIN ─────────────────────────────────────────
@@ -803,8 +812,7 @@ public class NalazControllerTests
 
         // Assert
         Assert.IsNotNull(rezultat);
-        Assert.AreEqual(ocekivaniPacijent,
-            rezultat.Value!.GetType().GetProperty("pacijentId")!.GetValue(rezultat.Value));
+        Assert.AreEqual(ocekivaniPacijent, NalazControllerPodaci.PacijentIzJsona(rezultat));
     }
 
     [TestMethod]
