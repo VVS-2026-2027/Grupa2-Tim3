@@ -2,35 +2,27 @@ namespace HealthZone.Services
 {
     public class OgranicenjeZakazivanjaService : IOgranicenjeZakazivanjaService
     {
+        // Koliko dana unazad se gledaju otkazivanja.
+        private const int PeriodUDanima = 30;
+
+        // Od ovoliko otkazivanja u periodu pacijent više ne može zakazati novi termin.
+        private const int MaksimalnoOtkazivanja = 3;
+
+        private const string PorukaListaJeNull = "Lista otkazivanja ne smije biti null.";
+
         public bool MozeZakazatiNoviTermin(IEnumerable<DateTime> datumiOtkazivanja, DateTime sada)
         {
             if (datumiOtkazivanja == null)
-            {
-                throw new Exception("Lista otkazivanja ne smije biti null.");
-            }
-            else
-            {
-                int broj = 0;
-                foreach (var datum in datumiOtkazivanja)
-                {
-                    if (datum > sada.AddDays(-30))
-                    {
-                        if (datum <= sada)
-                        {
-                            broj++;
-                        }
-                    }
-                }
+                throw new Exception(PorukaListaJeNull);
 
-                if (broj >= 3)
-                {
-                    return false;
-                }
-                else
-                {
-                    return true;
-                }
-            }
+            return BrojOtkazivanjaUPeriodu(datumiOtkazivanja, sada) < MaksimalnoOtkazivanja;
+        }
+
+        // Broje se samo otkazivanja poslije početka perioda i najkasnije do "sada".
+        private static int BrojOtkazivanjaUPeriodu(IEnumerable<DateTime> datumiOtkazivanja, DateTime sada)
+        {
+            var pocetakPerioda = sada.AddDays(-PeriodUDanima);
+            return datumiOtkazivanja.Count(datum => datum > pocetakPerioda && datum <= sada);
         }
     }
 }
