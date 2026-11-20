@@ -38,6 +38,20 @@ public static class AccountControllerPodaci
     public static void RegistracijaUspijeva(Mock<UserManager<Korisnik>> userManager, string lozinka) =>
         userManager.Setup(u => u.CreateAsync(It.IsAny<Korisnik>(), lozinka)).ReturnsAsync(IdentityResult.Success);
 
+    // Ispravni podaci za registraciju s imenovanim poljima, da test ne čita kolone po indeksu.
+    public sealed record ValidniKorisnik(string Ime, string Prezime, string Email, string Telefon, string Lozinka);
+
+    public static ValidniKorisnik ValidnaRegistracija()
+    {
+        var p = ValidniPodaci();
+        return new ValidniKorisnik(p[0], p[1], p[2], p[3], p[4]);
+    }
+
+    // Vrijednosti koje kontroler stavlja u ViewData.
+    public static object? Greska(ViewResult rezultat) => rezultat.ViewData["Greška"];
+
+    public static object? ZapamceniReturnUrl(ViewResult rezultat) => rezultat.ViewData["ReturnUrl"];
+
     // Poziva Register s ispravnim podacima iz CSV-a (lozinka i potvrda su iste).
     public static Task<IActionResult> RegistrujValidnogKorisnika(AccountController controller)
     {
@@ -150,7 +164,7 @@ public class AccountControllerTests
         var rezultat = (ViewResult)_controller.Login(returnUrl);
 
         // Assert
-        Assert.AreEqual(returnUrl, rezultat.ViewData["ReturnUrl"]);
+        Assert.AreEqual(returnUrl, AccountControllerPodaci.ZapamceniReturnUrl(rezultat));
     }
 
     [TestMethod]
@@ -192,7 +206,7 @@ public class AccountControllerTests
         var rezultat = (ViewResult)await _controller.Login(email, lozinka);
 
         // Assert
-        Assert.AreEqual(ocekivanaPoruka, rezultat.ViewData["Greška"]);
+        Assert.AreEqual(ocekivanaPoruka, AccountControllerPodaci.Greska(rezultat));
     }
 
     [TestMethod]
@@ -223,7 +237,7 @@ public class AccountControllerTests
         var rezultat = (ViewResult)await _controller.Login(email, lozinka);
 
         // Assert
-        Assert.AreEqual(ocekivanaPoruka, rezultat.ViewData["Greška"]);
+        Assert.AreEqual(ocekivanaPoruka, AccountControllerPodaci.Greska(rezultat));
     }
 
     [TestMethod]
@@ -321,7 +335,7 @@ public class AccountControllerTests
         var rezultat = (ViewResult)await _controller.Register(ime, prezime, email, string.Empty, lozinka, lozinka);
 
         // Assert
-        Assert.AreEqual(ocekivanaPoruka, rezultat.ViewData["Greška"]);
+        Assert.AreEqual(ocekivanaPoruka, AccountControllerPodaci.Greska(rezultat));
     }
 
     [TestMethod]
@@ -344,13 +358,14 @@ public class AccountControllerTests
     public async Task Register_LozinkeSeNePodudaraju_PrikazujeGresku(string lozinka, string potvrdiLozinku, string ocekivanaPoruka)
     {
         // Arrange
-        var p = AccountControllerPodaci.ValidniPodaci();
+        var podaci = AccountControllerPodaci.ValidnaRegistracija();
 
         // Act
-        var rezultat = (ViewResult)await _controller.Register(p[0], p[1], p[2], p[3], lozinka, potvrdiLozinku);
+        var rezultat = (ViewResult)await _controller.Register(podaci.Ime, podaci.Prezime, podaci.Email, podaci.Telefon,
+            lozinka, potvrdiLozinku);
 
         // Assert
-        Assert.AreEqual(ocekivanaPoruka, rezultat.ViewData["Greška"]);
+        Assert.AreEqual(ocekivanaPoruka, AccountControllerPodaci.Greska(rezultat));
     }
 
     // ─── Register (POST): uspješna registracija ───────────────────────────
@@ -431,11 +446,11 @@ public class AccountControllerTests
     public async Task Register_PrazanIliUnesenTelefon_SnimaTelefonIliNull(string email, string lozinka, string telefon, string? ocekivaniTelefon)
     {
         // Arrange
-        var p = AccountControllerPodaci.ValidniPodaci();
+        var podaci = AccountControllerPodaci.ValidnaRegistracija();
         AccountControllerPodaci.RegistracijaUspijeva(_userManager, lozinka);
 
         // Act
-        await _controller.Register(p[0], p[1], email, telefon, lozinka, lozinka);
+        await _controller.Register(podaci.Ime, podaci.Prezime, email, telefon, lozinka, lozinka);
 
         // Assert
         _userManager.Verify(u => u.CreateAsync(It.Is<Korisnik>(k => k.PhoneNumber == ocekivaniTelefon), lozinka), Times.Once);
@@ -456,7 +471,7 @@ public class AccountControllerTests
         var rezultat = (ViewResult)await AccountControllerPodaci.RegistrujValidnogKorisnika(_controller);
 
         // Assert
-        Assert.AreEqual(ocekivanaPoruka, rezultat.ViewData["Greška"]);
+        Assert.AreEqual(ocekivanaPoruka, AccountControllerPodaci.Greska(rezultat));
     }
 
     [TestMethod]
@@ -504,6 +519,6 @@ public class AccountControllerTests
         var rezultat = (ViewResult)await AccountControllerPodaci.RegistrujValidnogKorisnika(_controller);
 
         // Assert
-        Assert.AreEqual(ocekivanaPoruka, rezultat.ViewData["Greška"]);
+        Assert.AreEqual(ocekivanaPoruka, AccountControllerPodaci.Greska(rezultat));
     }
 }
