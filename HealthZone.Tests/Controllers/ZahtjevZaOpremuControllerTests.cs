@@ -17,6 +17,11 @@ public static class ZahtjevZaOpremuControllerPodaci
 {
     // ── pomoćne metode ──
 
+    // Vrijednosti koje kontroler stavlja u ViewData i TempData.
+    public static SelectList ListaDoktora(Controller kontroler) => (SelectList)kontroler.ViewData["DoktorID"]!;
+
+    public static object? PorukaGreske(Controller kontroler) => kontroler.TempData["Greška"];
+
     public static ZahtjevZaOpremu NapraviZahtjev(XElement x) => new()
     {
         ZahtjevId = (int)x.Element("id")!,
@@ -263,7 +268,7 @@ public class ZahtjevZaOpremuControllerTests
         await _controller.Create();
 
         // Assert
-        Assert.AreEqual(doktori.Count, ((SelectList)_controller.ViewData["DoktorID"]!).Count());
+        Assert.AreEqual(doktori.Count, ZahtjevZaOpremuControllerPodaci.ListaDoktora(_controller).Count());
     }
 
     [TestMethod]
@@ -820,7 +825,7 @@ public class ZahtjevZaOpremuControllerTests
         await _controller.Odobri(id);
 
         // Assert
-        Assert.AreEqual(poruka, _controller.TempData["Greška"]);
+        Assert.AreEqual(poruka, ZahtjevZaOpremuControllerPodaci.PorukaGreske(_controller));
     }
 
     [TestMethod]
@@ -862,6 +867,6 @@ public class ZahtjevZaOpremuControllerTests
         await _controller.Odbij(id);
 
         // Assert
-        Assert.AreEqual(poruka, _controller.TempData["Greška"]);
+        Assert.AreEqual(poruka, ZahtjevZaOpremuControllerPodaci.PorukaGreske(_controller));
     }
 }
