@@ -17,6 +17,11 @@ public static class RecenzijaControllerPodaci
 {
     // ── pomoćne metode ──
 
+    // Vrijednosti koje kontroler stavlja u ViewData i TempData.
+    public static SelectList ListaDoktora(Controller kontroler) => (SelectList)kontroler.ViewData["DoktorID"]!;
+
+    public static object? PorukaUspjeha(Controller kontroler) => kontroler.TempData["Uspjeh"];
+
     public static Recenzija NapraviRecenziju(XElement x) => new()
     {
         RecenzijaId = (int)x.Element("id")!,
@@ -313,7 +318,7 @@ public class RecenzijaControllerTests
         await _controller.Create(doktorId);
 
         // Assert
-        Assert.AreEqual(brojDoktora, ((SelectList)_controller.ViewData["DoktorID"]!).Count());
+        Assert.AreEqual(brojDoktora, RecenzijaControllerPodaci.ListaDoktora(_controller).Count());
     }
 
     [TestMethod]
@@ -326,7 +331,7 @@ public class RecenzijaControllerTests
         await _controller.Create(doktorId);
 
         // Assert
-        Assert.AreEqual(doktorId, ((SelectList)_controller.ViewData["DoktorID"]!).SelectedValue);
+        Assert.AreEqual(doktorId, RecenzijaControllerPodaci.ListaDoktora(_controller).SelectedValue);
     }
 
     // ─── Create (POST) ────────────────────────────────────────────────────
@@ -380,7 +385,7 @@ public class RecenzijaControllerTests
         await _controller.Create(recenzija);
 
         // Assert
-        Assert.IsNotNull(_controller.TempData["Uspjeh"]);
+        Assert.IsNotNull(RecenzijaControllerPodaci.PorukaUspjeha(_controller));
     }
 
     [TestMethod]
